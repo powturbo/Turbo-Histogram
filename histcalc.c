@@ -58,7 +58,7 @@ int count_1(unsigned char *in, unsigned inlen) {
 int count_4(unsigned char *in, unsigned inlen) { 
   unsigned count[256]={0};
   unsigned c0[256]={0},c1[256]={0},c2[256]={0},c3[256]={0}; 
-  unsigned char *ip = in; 
+  unsigned char *ip; 
 
   for(ip = in; ip != in + (inlen&~(4-1)); ) 
     c0[*ip++]++, c1[*ip++]++, c2[*ip++]++, c3[*ip++]++; 
