@@ -1,4 +1,4 @@
-turbohist
+TurboHist
 =========
 
 Fast Histogram Construction
