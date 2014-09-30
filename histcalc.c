@@ -183,4 +183,5 @@ int main(int argc, char *argv[]) {
     r = count_4(   in,n); TMPRINT("count4");
     r = count_1(   in,n); TMPRINT("count1");
   }
+  free(in); 
 }
