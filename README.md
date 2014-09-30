@@ -7,7 +7,7 @@ Fast Histogram Construction
   gcc -w -O2 -msse4.1 histcalc.c -o histcalc
 
 # Usage:
-  histcalc <input file >
+  histcalc file
   
 # Benchmark:
 i7-2600k at 4.5GHz
