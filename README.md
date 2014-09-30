@@ -12,7 +12,7 @@ Fast Histogram Construction
 # Benchmark:
 i7-2600k at 4.5GHz
 
-## Uniform distribution: 
+### - Uniform distribution: 
 [enwik9](http://mattmahoney.net/dc/text.html)
 <table>
   <tr><th>Function</th><th>Time MB/s</th></tr>
@@ -23,7 +23,7 @@ i7-2600k at 4.5GHz
   <tr><th>count1</th><th>1783.99</th></tr>
 </table>
 
-## Skewed distribution: 
+### - Skewed distribution: 
 enwik9 bwt  generated w. libdivsufsort
 <table>
   <tr><th>Function</th><th>Time MB/s</th></tr>
