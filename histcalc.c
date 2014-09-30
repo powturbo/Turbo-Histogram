@@ -12,7 +12,6 @@
   #ifndef _WIN32
 #include <sys/resource.h>
   #endif
-
 typedef unsigned long long tm_t;
 static double tmsec(tm_t tm) { return (double)tm/1000000.0; }
 static double tmmsec(tm_t tm) { return (double)tm/1000.0; }
@@ -151,9 +150,9 @@ int count_sse8(unsigned char *in, unsigned inlen) {
 }
   #endif
 
-#define TMPRINT(__x) printf("%s \t%.3f %d\n", __x, tmmsec(tmtime()-t0),r);fflush(stdout); t0=tminit()
+#define TMPRINT(__x) { tm_t tc = tmtime()-t0; printf("%s \t%7.2f %d\n", __x, (double)(tc>=0.000001?(((double)n/1048576.0)/(((double)tc/1)/TM_T)):0.0),r); t0=tminit(); }
 
-int main(int argc, char *argv[]) { int r;
+int main(int argc, char *argv[]) {
   if(argc < 2) {
     fprintf(stderr, "usage: %s <file>\n", argv[0]);
     exit(-1);
@@ -172,13 +171,16 @@ int main(int argc, char *argv[]) { int r;
   n = fread(in, 1, n, fi);
   fclose(fi);
   if(n <= 0) exit(0); 
-
-  tm_t t0 = tminit(); 
-    #ifdef __SSE4_1__
-  r = count_sse4(in,n); TMPRINT("sse4");
-  r = count_sse8(in,n); TMPRINT("sse8");
-    #endif
-  r = count_8(   in,n); TMPRINT("count8");
-  r = count_4(   in,n); TMPRINT("count4");
-  r = count_1(   in,n); TMPRINT("count1");
+  
+  { 
+    int r;
+    tm_t t0 = tminit(); 
+      #ifdef __SSE4_1__
+    r = count_sse4(in,n); TMPRINT("sse4");
+    r = count_sse8(in,n); TMPRINT("sse8");
+      #endif
+    r = count_8(   in,n); TMPRINT("count8");
+    r = count_4(   in,n); TMPRINT("count4");
+    r = count_1(   in,n); TMPRINT("count1");
+  }
 }
