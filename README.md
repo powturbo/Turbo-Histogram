@@ -11,7 +11,9 @@ Fast Histogram Construction
   
 # Benchmark:
 
-## Uniform distribution: enwik9 (http://mattmahoney.net/dc/text.html)
+## Uniform distribution: enwik9 
+(http://mattmahoney.net/dc/text.html)
+
 sse4 	 429.566 ms
 sse8 	 429.159 ms
 count8 	 485.583 ms
@@ -19,6 +21,7 @@ count4 	 484.253 ms
 count1 	 568.871 ms
 
 ## Skewed distribution: enwik9 bwt  generated w. libdivsufsort
+
 sse4 	 432.523 ms
 sse8 	 495.999 ms
 count8 	 553.712 ms
