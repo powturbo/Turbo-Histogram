@@ -133,7 +133,7 @@ int hist_8_64(unsigned char *in, unsigned inlen) {
     c4[(unsigned char)(d>>32)]++;
     c5[(unsigned char)(d>>40)]++;
     c6[(unsigned char)(d>>48)]++;
-    c7[c>>56]++;
+    c7[d>>56]++;
   }
   while(ip < in+inlen) c0[*ip++]++; 
   for(i = 0; i < 256; i++) 
