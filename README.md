@@ -13,7 +13,7 @@ Fastest Histogram Construction
   
 # Benchmark:
 i7-2600k at 4.5GHz, gcc 4.9, ubuntu 14.10.
-Practical benchmark with large files.
+- Practical benchmark with large files.
 
 ### - Uniform distribution: 
 [enwik9](http://mattmahoney.net/dc/text.html)
