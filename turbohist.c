@@ -1,4 +1,5 @@
-// compile w. gcc -w -O2 -msse4.1 histcalc.c -o histcalc
+// compile w. gcc -w -O2 -msse4.1 turbohist.c -o turbohist
+// homepage: http://sites.google.com/site/powturbo/ 
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -7,7 +8,6 @@
   #ifdef __SSE4_1__
 #include <smmintrin.h>
   #endif
-
 //------------------------------------------------------------------------------------
   #ifndef _WIN32
 #include <sys/resource.h>
@@ -46,16 +46,16 @@ static tm_t tmtime(void)
 //#define RET { unsigned a = 256; while(a > 1 && !bin[a-1]) a--; return a;}
 #define RET { unsigned a=0, i; for(i = 0; i < 256; i++) a+=bin[i]; return a;}
 
-int hist_1(unsigned char *in, unsigned inlen) { 
+int hist_1_8(unsigned char *in, unsigned inlen) { 
   unsigned bin[256] = {0};
   unsigned char *ip;
 
-  for(ip=in; ip != in + inlen;)
+  for(ip=in; ip != in+inlen;)
     bin[*ip++]++;
   RET;
 }
 
-int hist_4(unsigned char *in, unsigned inlen) { 
+int hist_4_8(unsigned char *in, unsigned inlen) { 
   unsigned bin[256]={0};
   unsigned c0[256]={0},c1[256]={0},c2[256]={0},c3[256]={0}; 
   unsigned char *ip; 
@@ -69,7 +69,33 @@ int hist_4(unsigned char *in, unsigned inlen) {
   RET;
 }
 
-int hist_8(unsigned char *in, unsigned inlen) { 
+int hist_4_32(unsigned char *in, unsigned inlen) { 
+  int i;
+  unsigned bin[256]={0};
+  unsigned c0[256]={0},c1[256]={0},c2[256]={0},c3[256]={0}; 
+  unsigned char *ip;
+
+  for(ip = in; ip != in+(inlen&~(8-1)); ip += 4) {
+    unsigned c = *(unsigned *)ip; ip+=4;
+    unsigned d = *(unsigned *)ip;
+    c0[(unsigned char)c      ]++;
+    c1[(unsigned char)(c>>8) ]++;
+    c2[(unsigned char)(c>>16)]++;
+    c3[c>>24                 ]++;
+    c0[(unsigned char)d      ]++;
+    c1[(unsigned char)(d>>8) ]++;
+    c2[(unsigned char)(d>>16)]++;
+    c3[d>>24                 ]++;
+  }
+  while(ip < in+inlen) c0[*ip++]++; 
+  for(i = 0; i < 256; i++) 
+    bin[i] = c0[i]+c1[i]+c2[i]+c3[i];
+
+  RET;
+}
+
+
+int hist_8_8(unsigned char *in, unsigned inlen) { 
   unsigned int bin[256]={0};
   unsigned c0[256]={0},c1[256]={0},c2[256]={0},c3[256]={0},c4[256]={0},c5[256]={0},c6[256]={0},c7[256]={0};  
   unsigned char *ip; 
@@ -83,8 +109,41 @@ int hist_8(unsigned char *in, unsigned inlen) {
   RET;
 }
 
+int hist_8_64(unsigned char *in, unsigned inlen) { 
+  int i;
+  unsigned bin[256]={0};
+  unsigned c0[256]={0},c1[256]={0},c2[256]={0},c3[256]={0},c4[256]={0},c5[256]={0},c6[256]={0},c7[256]={0}; 
+  unsigned char *ip;
+
+  for(ip = in; ip != in+(inlen&~(16-1)); ip += 8) {
+    unsigned long long c = *(unsigned long long *)ip; ip+=8;
+    unsigned long long d = *(unsigned long long *)ip;
+    c0[(unsigned char)c]++;
+    c1[(unsigned char)(c>>8)]++;
+    c2[(unsigned char)(c>>16)]++;
+    c3[(unsigned char)(c>>24)]++;
+    c4[(unsigned char)(c>>32)]++;
+    c5[(unsigned char)(c>>40)]++;
+    c6[(unsigned char)(c>>48)]++;
+    c7[c>>56]++;
+    c0[(unsigned char)d]++;
+    c1[(unsigned char)(d>>8)]++;
+    c2[(unsigned char)(d>>16)]++;
+    c3[(unsigned char)(d>>24)]++;
+    c4[(unsigned char)(d>>32)]++;
+    c5[(unsigned char)(d>>40)]++;
+    c6[(unsigned char)(d>>48)]++;
+    c7[c>>56]++;
+  }
+  while(ip < in+inlen) c0[*ip++]++; 
+  for(i = 0; i < 256; i++) 
+    bin[i] = c0[i]+c1[i]+c2[i]+c3[i]+c4[i]+c5[i]+c6[i]+c7[i];
+
+  RET;
+}
+
   #ifdef __SSE4_1__
-int hist_sse4(unsigned char *in, unsigned inlen) { 
+int hist_4_128(unsigned char *in, unsigned inlen) { 
   int i;
   unsigned bin[256]={0};
   unsigned c0[256]={0},c1[256]={0},c2[256]={0},c3[256]={0}; 
@@ -117,7 +176,7 @@ int hist_sse4(unsigned char *in, unsigned inlen) {
   RET;
 }
 
-int hist_sse8(unsigned char *in, unsigned inlen) { 
+int hist_8_128(unsigned char *in, unsigned inlen) { 
   int i;
   unsigned bin[256]={0};
   unsigned c0[256]={0},c1[256]={0},c2[256]={0},c3[256]={0},c4[256]={0},c5[256]={0},c6[256]={0},c7[256]={0}; 
@@ -176,12 +235,14 @@ int main(int argc, char *argv[]) {
     int r;
     tm_t t0 = tminit(); 
       #ifdef __SSE4_1__
-    r = hist_sse4(in,n); TMPRINT("sse4");
-    r = hist_sse8(in,n); TMPRINT("sse8");
+    r = hist_4_128(in,n); TMPRINT("sse4   ");
+    r = hist_8_128(in,n); TMPRINT("sse8   ");
       #endif
-    r = hist_8(   in,n); TMPRINT("count8");
-    r = hist_4(   in,n); TMPRINT("count4");
-    r = hist_1(   in,n); TMPRINT("count1");
+    r = hist_4_32(   in,n);TMPRINT("count4u");
+    r = hist_8_64(  in,n); TMPRINT("count8l");
+    r = hist_8_8(   in,n); TMPRINT("count8 ");
+    r = hist_4_8(   in,n); TMPRINT("count4 ");
+    r = hist_1_8(   in,n); TMPRINT("count1 ");
   }
   free(in); 
 }
