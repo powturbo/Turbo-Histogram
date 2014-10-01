@@ -4,12 +4,6 @@ TurboHist
 Fastest Histogram Construction
 - ~1.6 clocks per byte (i7-2600k at 3.4GHz, data size = 64k)
 
-## Compile:
-  gcc -w -O2 -msse4.1 turbohist.c -o turbohist
-
-## Usage:
-  turbohist file
-  
 # Benchmark:
 i7-2600k at 4.5GHz, gcc 4.9, ubuntu 14.10.
 - Practical benchmark with large files.
@@ -35,3 +29,10 @@ enwik9 bwt  generated w. libdivsufsort
   <tr><th>count4<th>1991.58</th></tr>
   <tr><th>count1<th>882.99</th></tr>
 </table>
+
+## Compile:
+  gcc -w -O2 -msse4.1 turbohist.c -o turbohist
+
+## Usage:
+  turbohist file
+  
