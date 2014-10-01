@@ -2,8 +2,7 @@ TurboHist
 =========
 
 Fastest Histogram Construction
-- ~1.6 clocks per byte 
-- (Tested on i7-2600k at 3.4GHz, data size = 64k)
+- ~1.6 clocks per byte (i7-2600k at 3.4GHz, data size = 64k)
 
 # Compile:
   gcc -w -O2 -msse4.1 turbohist.c -o turbohist
