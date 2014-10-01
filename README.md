@@ -9,8 +9,8 @@ i7-2600k at 4.5GHz, gcc 4.9, ubuntu 14.10.
 - Practical benchmark with large files.
 
 #### - Uniform/Skewed distribution: 
-[enwik9](http://mattmahoney.net/dc/text.html)
-enwik9 bwt  generated w. libdivsufsort
+ - Uniform: [enwik9](http://mattmahoney.net/dc/text.html)
+ - Skewed: enwik9 bwt generated w. libdivsufsort
  
 <table>
   <tr><th>Function</th><th>Uniform: Time MB/s</th><th>Skewed: Time MB/s</th></tr>
