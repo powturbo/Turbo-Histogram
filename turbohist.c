@@ -1,9 +1,10 @@
-// compile w. gcc -w -O2 -msse4.1 turbohist.c -o turbohist
+// compile w. gcc -O2 -msse4.1 turbohist.c -o turbohist
 // homepage: http://sites.google.com/site/powturbo/ 
 
 #include <stdio.h>
 #include <stdlib.h>
 #include <malloc.h>
+#include <string.h>
 
   #ifdef __SSE4_1__
 #include <smmintrin.h>
@@ -16,6 +17,12 @@ typedef unsigned long long tm_t;
 static double tmsec(tm_t tm) { return (double)tm/1000000.0; }
 static double tmmsec(tm_t tm) { return (double)tm/1000.0; }
 static tm_t tmtime(void);
+
+  #ifdef _MSC_VER
+#include <intrin.h>
+  #else
+#include <x86intrin.h>
+  #endif
 
   #ifdef _WIN32
 #include <windows.h>
@@ -41,8 +48,8 @@ static tm_t tmtime(void)
   return (tm_t)tm.tv_sec*1000000ull + tm.tv_usec;
     #endif
 }
-//-------------------------------------------------------------------------------------
 
+//----------------------------------------------------------------------------------
 //#define RET { unsigned a = 256; while(a > 1 && !bin[a-1]) a--; return a;}
 #define RET { unsigned a=0, i; for(i = 0; i < 256; i++) a+=bin[i]; return a;}
 
@@ -69,32 +76,6 @@ int hist_4_8(unsigned char *in, unsigned inlen) {
   RET;
 }
 
-int hist_4_32(unsigned char *in, unsigned inlen) { 
-  int i;
-  unsigned bin[256]={0};
-  unsigned c0[256]={0},c1[256]={0},c2[256]={0},c3[256]={0}; 
-  unsigned char *ip;
-
-  for(ip = in; ip != in+(inlen&~(8-1)); ip += 4) {
-    unsigned c = *(unsigned *)ip; ip+=4;
-    unsigned d = *(unsigned *)ip;
-    c0[(unsigned char)c      ]++;
-    c1[(unsigned char)(c>>8) ]++;
-    c2[(unsigned char)(c>>16)]++;
-    c3[c>>24                 ]++;
-    c0[(unsigned char)d      ]++;
-    c1[(unsigned char)(d>>8) ]++;
-    c2[(unsigned char)(d>>16)]++;
-    c3[d>>24                 ]++;
-  }
-  while(ip < in+inlen) c0[*ip++]++; 
-  for(i = 0; i < 256; i++) 
-    bin[i] = c0[i]+c1[i]+c2[i]+c3[i];
-
-  RET;
-}
-
-
 int hist_8_8(unsigned char *in, unsigned inlen) { 
   unsigned int bin[256]={0};
   unsigned c0[256]={0},c1[256]={0},c2[256]={0},c3[256]={0},c4[256]={0},c5[256]={0},c6[256]={0},c7[256]={0};  
@@ -109,31 +90,113 @@ int hist_8_8(unsigned char *in, unsigned inlen) {
   RET;
 }
 
+//--------------------------------------------------------------------------
+int hist_4_32(unsigned char *in, unsigned inlen) { 
+//#define NU 8
+  #define NU 16
+  int i;
+  unsigned bin[256]={0};
+  unsigned c0[256]={0},c1[256]={0},c2[256]={0},c3[256]={0}; 
+  unsigned char *ip;
+
+  unsigned cp = *(unsigned *)in;
+  for(ip = in; ip != in+(inlen&~(NU-1));) {
+    unsigned c = cp; ip += 4; cp = *(unsigned *)ip;
+    c0[(unsigned char)c      ]++;
+    c1[(unsigned char)(c>>8) ]++;
+    c2[(unsigned char)(c>>16)]++;
+    c3[c>>24                 ]++;
+
+    	     c = cp; ip += 4; cp = *(unsigned *)ip;
+    c0[(unsigned char)c      ]++;
+    c1[(unsigned char)(c>>8) ]++;
+    c2[(unsigned char)(c>>16)]++;
+    c3[c>>24                 ]++;
+
+      #if NU == 16
+    	     c = cp; ip += 4; cp = *(unsigned *)ip;
+    c0[(unsigned char)c      ]++;
+    c1[(unsigned char)(c>>8) ]++;
+    c2[(unsigned char)(c>>16)]++;
+    c3[c>>24                 ]++;
+
+             c = cp; ip += 4; cp = *(unsigned *)ip;
+    c0[(unsigned char)c      ]++;
+    c1[(unsigned char)(c>>8) ]++;
+    c2[(unsigned char)(c>>16)]++;
+    c3[c>>24                 ]++;
+      #endif
+  }
+  while(ip < in+inlen) c0[*ip++]++; 
+  for(i = 0; i < 256; i++) 
+    bin[i] = c0[i]+c1[i]+c2[i]+c3[i];
+
+  RET;
+}
+
+//----------------------------------------------------------------------------------
+int hist_4_64(unsigned char *in, unsigned inlen) { 
+  int i;
+  unsigned bin[256]={0};
+  unsigned c0[256]={0},c1[256]={0},c2[256]={0},c3[256]={0}; 
+  unsigned char *ip;
+
+  unsigned long long cp = *(unsigned long long *)in;
+  for(ip = in; ip != in+(inlen&~(16-1)); ) {    
+    unsigned long long c = cp; ip += 8; cp = *(unsigned long long *)ip; 
+    c0[(unsigned char) c     ]++;
+    c1[(unsigned char)(c>> 8)]++;
+    c2[(unsigned char)(c>>16)]++;
+    c3[(unsigned char)(c>>24)]++;
+    c0[(unsigned char)(c>>32)]++;
+    c1[(unsigned char)(c>>40)]++;
+    c2[(unsigned char)(c>>48)]++;
+    c3[                c>>56 ]++;
+
+    		       c = cp; ip += 8; cp = *(unsigned long long *)ip; 
+    c0[(unsigned char) c    ]++;
+    c1[(unsigned char)(c>> 8)]++;
+    c2[(unsigned char)(c>>16)]++;
+    c3[(unsigned char)(c>>24)]++;
+    c0[(unsigned char)(c>>32)]++;
+    c1[(unsigned char)(c>>40)]++;
+    c2[(unsigned char)(c>>48)]++;
+    c3[                c>>56 ]++;
+  }
+  while(ip < in+inlen) c0[*ip++]++; 
+  for(i = 0; i < 256; i++) 
+    bin[i] = c0[i]+c1[i]+c2[i]+c3[i];
+
+  RET;
+}
+
 int hist_8_64(unsigned char *in, unsigned inlen) { 
   int i;
   unsigned bin[256]={0};
   unsigned c0[256]={0},c1[256]={0},c2[256]={0},c3[256]={0},c4[256]={0},c5[256]={0},c6[256]={0},c7[256]={0}; 
   unsigned char *ip;
 
-  for(ip = in; ip != in+(inlen&~(16-1)); ip += 8) {
-    unsigned long long c = *(unsigned long long *)ip; ip+=8;
-    unsigned long long d = *(unsigned long long *)ip;
-    c0[(unsigned char)c]++;
-    c1[(unsigned char)(c>>8)]++;
+  unsigned long long cp = *(unsigned long long *)in;
+  for(ip = in; ip != in+(inlen&~(16-1)); ) {    
+    unsigned long long c = cp; ip += 8; cp = *(unsigned long long *)ip; 
+    c0[(unsigned char) c     ]++;
+    c1[(unsigned char)(c>>8) ]++;
     c2[(unsigned char)(c>>16)]++;
     c3[(unsigned char)(c>>24)]++;
     c4[(unsigned char)(c>>32)]++;
     c5[(unsigned char)(c>>40)]++;
     c6[(unsigned char)(c>>48)]++;
     c7[c>>56]++;
-    c0[(unsigned char)d]++;
-    c1[(unsigned char)(d>>8)]++;
-    c2[(unsigned char)(d>>16)]++;
-    c3[(unsigned char)(d>>24)]++;
-    c4[(unsigned char)(d>>32)]++;
-    c5[(unsigned char)(d>>40)]++;
-    c6[(unsigned char)(d>>48)]++;
-    c7[d>>56]++;
+
+    			c = cp;  ip += 8; cp = *(unsigned long long *)ip; 
+    c0[(unsigned char) c     ]++;
+    c1[(unsigned char)(c>>8) ]++;
+    c2[(unsigned char)(c>>16)]++;
+    c3[(unsigned char)(c>>24)]++;
+    c4[(unsigned char)(c>>32)]++;
+    c5[(unsigned char)(c>>40)]++;
+    c6[(unsigned char)(c>>48)]++;
+    c7[                c>>56]++;
   }
   while(ip < in+inlen) c0[*ip++]++; 
   for(i = 0; i < 256; i++) 
@@ -142,6 +205,7 @@ int hist_8_64(unsigned char *in, unsigned inlen) {
   RET;
 }
 
+//-------------------------------------------------------------------------------------------------
   #ifdef __SSE4_1__
 int hist_4_128(unsigned char *in, unsigned inlen) { 
   int i;
@@ -149,8 +213,9 @@ int hist_4_128(unsigned char *in, unsigned inlen) {
   unsigned c0[256]={0},c1[256]={0},c2[256]={0},c3[256]={0}; 
   unsigned char *ip;
 
-  for(ip = in; ip != in+(inlen&~(16-1)); ip += 16) {
-    __m128i vc = _mm_loadu_si128((__m128i*)ip);
+  __m128i vcp = _mm_loadu_si128((__m128i*)in);
+  for(ip = in; ip != in+(inlen&~(16-1)); ) {
+    __m128i vc=vcp; ip += 16; vcp = _mm_loadu_si128((__m128i*)ip);
     c0[_mm_extract_epi8(vc,  0)]++;
     c1[_mm_extract_epi8(vc,  1)]++;
     c2[_mm_extract_epi8(vc,  2)]++;
@@ -182,8 +247,9 @@ int hist_8_128(unsigned char *in, unsigned inlen) {
   unsigned c0[256]={0},c1[256]={0},c2[256]={0},c3[256]={0},c4[256]={0},c5[256]={0},c6[256]={0},c7[256]={0}; 
   unsigned char *ip;
 
-  for(ip = in; ip != in+(inlen&~(16-1)); ip += 16) {
-    __m128i vc = _mm_loadu_si128((__m128i*)ip);
+  __m128i vcp = _mm_loadu_si128((__m128i*)in);
+  for(ip = in; ip != in+(inlen&~(16-1)); ) {
+    __m128i vc=vcp; ip += 16; vcp = _mm_loadu_si128((__m128i*)ip);
     c0[_mm_extract_epi8(vc,  0)]++;
     c1[_mm_extract_epi8(vc,  1)]++;
     c2[_mm_extract_epi8(vc,  2)]++;
@@ -209,7 +275,9 @@ int hist_8_128(unsigned char *in, unsigned inlen) {
 }
   #endif
 
-#define TMPRINT(__x) { tm_t tc = tmtime()-t0; printf("%s \t%7.2f %d\n", __x, (double)(tc>=0.000001?(((double)n/1048576.0)/(((double)tc/1)/TM_T)):0.0),r); t0=tminit(); }
+#define TMPRINT(__x) { printf("%s %.1f clocks/symbol \t%7.2f %d\n", __x, (double)cc/((double)n*1.0), (double)(tc>=0.000001?(((double)n/1048576.0)/(((double)tc/1)/TM_T)):0.0),r); }
+#define TMBEG t0 = tminit();      c0 =__rdtsc()
+#define TMEND tc = tmtime() - t0; cc =__rdtsc()-c0
 
 int main(int argc, char *argv[]) {
   if(argc < 2) {
@@ -233,16 +301,21 @@ int main(int argc, char *argv[]) {
   
   { 
     int r;
-    tm_t t0 = tminit(); 
+    tm_t t0,tc,c0,cc;
+    r = hist_4_32(  in,n);
+    TMBEG; r = hist_4_32(  in,n);		TMEND;
       #ifdef __SSE4_1__
-    r = hist_4_128(in,n); TMPRINT("sse4   ");
-    r = hist_8_128(in,n); TMPRINT("sse8   ");
+    TMBEG; r = hist_4_128(in,n);  		TMEND;	TMPRINT("hist_4_128");
+    TMBEG; r = hist_8_128(in,n);  		TMEND;	TMPRINT("hist_8_128");
       #endif
-    r = hist_4_32(   in,n);TMPRINT("count4u");
-    r = hist_8_64(  in,n); TMPRINT("count8l");
-    r = hist_8_8(   in,n); TMPRINT("count8 ");
-    r = hist_4_8(   in,n); TMPRINT("count4 ");
-    r = hist_1_8(   in,n); TMPRINT("count1 ");
+    TMBEG; r = hist_4_32(  in,n);		TMEND;	TMPRINT("hist_4_32 ");
+    TMBEG; r = hist_4_64( in,n); 		TMEND;	TMPRINT("hist_4_64 ");
+
+    TMBEG; r = hist_8_64( in,n); 		TMEND;	TMPRINT("hist_8_64 ");
+
+    TMBEG; r = hist_8_8(   in,n); 		TMEND;	TMPRINT("hist_8_8  ");
+    TMBEG; r = hist_4_8(   in,n); 		TMEND;	TMPRINT("hist_4_8  ");
+    TMBEG; r = hist_1_8(   in,n); 		TMEND;	TMPRINT("hist_1_8  ");
   }
   free(in); 
 }
