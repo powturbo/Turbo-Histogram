@@ -1,4 +1,5 @@
 // compile w. gcc -O3 -msse4.1 turbohist.c -o turbohist
+// set #define BUFMAX (1<<16) for small buffer test
 // homepage: http://sites.google.com/site/powturbo/ 
 
 #include <stdio.h>
@@ -52,14 +53,15 @@ static double tmmsec(tm_t tm) { return (double)tm/1000.0; }
 //#define RET { unsigned a = 256; while(a > 1 && !c0[a-1]) a--; return a;}
 #define RET { unsigned a=0, i; for(i = 0; i < 256; i++) a+=c0[i]; return a;}
 
-  #if 1
-typedef unsigned       bin_t;
-#define PAD8 16  // +16 to avoid repeated call into the same cache line pool (cache associativity). by Nathan Kurz : https://github.com/powturbo/turbohist/issues/2
+//#define BUFMAX (1<<16)
 #define BUFMAX (1<<30)
-  #else
+
+  #if BUFMAX <= (1<<16) 
 typedef unsigned short bin_t;
 #define PAD8 0
-#define BUFMAX (1<<16)
+  #else
+typedef unsigned       bin_t;
+#define PAD8 16  // +16 to avoid repeated call into the same cache line pool (cache associativity). by Nathan Kurz : https://github.com/powturbo/turbohist/issues/2
   #endif
 
 int hist_1_8(unsigned char *in, unsigned inlen) { 
