@@ -303,7 +303,7 @@ int main(int argc, char *argv[]) { int i; unsigned char *in; int n;
 
   { 
     tm_t tx=2*1000000; 
-    int r,k,it;
+    int r,it;
     tm_t t0,tc,c0,cc;
     TMBEG r = hist_4_32(  in,n);	TMEND;
       #ifdef __SSE4_1__
