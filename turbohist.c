@@ -102,38 +102,32 @@ int hist_8_8(unsigned char *in, unsigned inlen) {
 
 //--------------------------------------------------------------------------
 int hist_4_32(unsigned char *in, unsigned inlen) { 
-//#define NU 8
-  #define NU 16
   bin_t c0[256]={0},c1[256]={0},c2[256]={0},c3[256]={0}; 
 
   unsigned char *ip;
   unsigned 		      cp = *(unsigned *)in;
-  for(ip = in; ip != in+(inlen&~(NU-1));) {
-    unsigned c = cp; ip += 4; cp = *(unsigned *)ip;
+  for(ip = in; ip != in+(inlen&~(16-1));) {
+     unsigned c = cp; ip += 4; cp = *(unsigned *)ip;
+     unsigned d = cp; ip += 4; cp = *(unsigned *)ip;
+    c0[(unsigned char) c     ]++;
+    c1[(unsigned char) d     ]++;
+    c2[(unsigned char)(c>> 8)]++;
+    c3[(unsigned char)(d>> 8)]++;
+    c0[(unsigned char)(c>>16)]++;
+    c1[(unsigned char)(d>>16)]++;
+    c2[                c>>24 ]++;
+    c3[                d>>24 ]++;
+    
+    c = cp; ip += 4; cp = *(unsigned *)ip;
+    d = cp; ip += 4; cp = *(unsigned *)ip;
     c0[(unsigned char)c      ]++;
-    c1[(unsigned char)(c>>8) ]++;
-    c2[(unsigned char)(c>>16)]++;
-    c3[c>>24                 ]++;
-
-    	     c = cp; ip += 4; cp = *(unsigned *)ip;
-    c0[(unsigned char)c      ]++;
-    c1[(unsigned char)(c>>8) ]++;
-    c2[(unsigned char)(c>>16)]++;
-    c3[c>>24                 ]++;
-
-      #if NU == 16
-    	     c = cp; ip += 4; cp = *(unsigned *)ip;
-    c0[(unsigned char)c      ]++;
-    c1[(unsigned char)(c>>8) ]++;
-    c2[(unsigned char)(c>>16)]++;
-    c3[c>>24                 ]++;
-
-             c = cp; ip += 4; cp = *(unsigned *)ip;
-    c0[(unsigned char)c      ]++;
-    c1[(unsigned char)(c>>8) ]++;
-    c2[(unsigned char)(c>>16)]++;
-    c3[c>>24                 ]++;
-      #endif
+    c1[(unsigned char)d      ]++;
+    c2[(unsigned char)(c>>8) ]++;
+    c3[(unsigned char)(d>>8) ]++;
+    c0[(unsigned char)(c>>16)]++;
+    c1[(unsigned char)(d>>16)]++;
+    c2[                c>>24 ]++;
+    c3[                d>>24 ]++;    
   }
   while(ip < in+inlen) c0[*ip++]++; 
 
