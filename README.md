@@ -17,9 +17,9 @@ i7-2600k at 4.5GHz, gcc 4.9, ubuntu 14.10.
 <table>
 <tr><th>Function</th><th>Uniform: Time MB/s</th><th>Skewed: Time MB/s</th></tr>
 <tr><th>hist_8_32</th><th>2702.92</th><th>2692.51</th></tr>
+<tr><th>hist_4_32</th><th>2604.89</th><th>2505.70</th></tr>
 <tr><th>hist_4_128</th><th>2568.36</th><th>2513.40</th></tr>
 <tr><th>hist_8_128</th><th>2572.15</th><th>2564.42</th></tr>
-<tr><th>hist_4_32</th><th>2604.89</th><th>2505.70</th></tr>
 <tr><th>hist_4_64</th><th>2338.06</th><th>2344.03</th></tr>
 <tr><th>hist_8_64</th><th>2345.17</th><th>2395.45</th></tr>
 <tr><th>hist_8_8</th><th>2349.73</th><th>2333.46</th></tr>
