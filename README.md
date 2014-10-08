@@ -29,7 +29,7 @@ i7-2600k at 4.5GHz, gcc 4.9, ubuntu 14.10.
 </table>
 
 ## Compile:
-  gcc -O2 -march=native turbohist.c -o turbohist
+  gcc -O3 -march=native turbohist.c -o turbohist
 
 ## Usage:
   turbohist file
