@@ -74,7 +74,7 @@ int hist_4_32(unsigned char *in, unsigned inlen) {
     c0[(unsigned char)(c>>16)]++;
     c1[(unsigned char)(d>>16)]++;
     c2[(unsigned char)(c>>24)]++;
-    c3[(unsigned char)(d>>24)]++;
+    c3[                d>>24]++;
     
     		c = cp; ip += 4; cp = *(unsigned *)ip;
     		d = cp; ip += 4; cp = *(unsigned *)ip;
@@ -85,7 +85,7 @@ int hist_4_32(unsigned char *in, unsigned inlen) {
     c0[(unsigned char)(c>>16)]++;
     c1[(unsigned char)(d>>16)]++;
     c2[(unsigned char)(c>>24)]++;
-    c3[(unsigned char)(d>>24)]++;
+    c3[                d>>24]++;
   }
   while(ip < in+inlen) c0[*ip++]++; 
 
@@ -301,7 +301,7 @@ int hist_8_128(unsigned char *in, unsigned inlen) {
 }
   #endif
 //--------------------------------------------------------------------------------------
-#define NKURTZ
+//#define NKURTZ
   #ifdef NKURTZ
 // fastest, but not portable "count2x64" from https://github.com/nkurz/countbench
 #include <stdint.h>
