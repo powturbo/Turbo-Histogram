@@ -11,41 +11,6 @@
 
 #define CHKSIZE (1<<30) // (56*1024) //
 //------------------------------------------------------------------------------------
-typedef unsigned long long tm_t;
-static tm_t tmtime(void);
-
-  #ifdef _MSC_VER
-#include <intrin.h>
-  #else
-#include <x86intrin.h>
-  #endif
-
-  #ifdef _WIN32
-#include <windows.h>
-#define TM_T 1
-
-static tm_t tmtime(void) {
-  LARGE_INTEGER tm;
-  QueryPerformanceCounter(&tm);
-  return (tm_t)(tm.QuadPart/tps.QuadPart);
-}
-
-LARGE_INTEGER tps;
-static tm_t tminit() { QueryPerformanceFrequency(&tps); tm_t t0=tmtime(),ts; while((ts = tmtime())==t0); return ts; } 
-  #else
-#include <sys/time.h>
-#include <sys/resource.h>
-#define TM_T 1000000.0
-static tm_t tmtime(void) {
-  struct timeval tm;
-  gettimeofday(&tm, NULL);
-  return (tm_t)tm.tv_sec*1000000ull + tm.tv_usec;
-}
-
-static tm_t tminit() {                                  tm_t t0=tmtime(),ts; while((ts = tmtime())==t0); return ts; }
-  #endif
-
-//----------------------------------------------------------------------------------
 //#define RET { unsigned a = 256; while(a > 1 && !c0[a-1]) a--; return a;}    		// alphabet maximum
 //#define RET { unsigned a=0, i; for(i = 0; i < 256; i++) a+=c0[i]; return a;}  	// Count
 //#define RET { unsigned a=0, i; for(i = 0; i < 256; i++) a+=i*c0[i]; return a;}  	// CheckSum
@@ -135,7 +100,7 @@ int hist_8_32(unsigned char *in, unsigned inlen) {
 
   unsigned char *ip;
   unsigned 		       cp = *(unsigned *)in;
-  for(ip = in; ip != in+(inlen&~(16-1));) {
+  for(ip = in; ip != in+(inlen&~(16-1));) { 
     unsigned 	c = cp; ip += 4; cp = *(unsigned *)ip;
     unsigned 	d = cp; ip += 4; cp = *(unsigned *)ip;
     c0[(unsigned char) c     ]++;
@@ -173,8 +138,9 @@ int hist_4_64(unsigned char *in, unsigned inlen) {
   unsigned long long 			cp = *(unsigned long long *)in;
   for(ip = in; ip != in+(inlen&~(16-1)); ) {    
     unsigned long long c = cp; ip += 8; cp = *(unsigned long long *)ip; 
+    unsigned long long d = cp; ip += 8; cp = *(unsigned long long *)ip; 
     c0[(unsigned char) c     ]++;
-    c1[(unsigned char)(c>> 8)]++;
+    c1[(unsigned char)(c>>8) ]++;
     c2[(unsigned char)(c>>16)]++;
     c3[(unsigned char)(c>>24)]++;
     c0[(unsigned char)(c>>32)]++;
@@ -182,15 +148,14 @@ int hist_4_64(unsigned char *in, unsigned inlen) {
     c2[(unsigned char)(c>>48)]++;
     c3[                c>>56 ]++;
 
-    		       c = cp; ip += 8; cp = *(unsigned long long *)ip; 
-    c0[(unsigned char) c    ]++;
-    c1[(unsigned char)(c>> 8)]++;
-    c2[(unsigned char)(c>>16)]++;
-    c3[(unsigned char)(c>>24)]++;
-    c0[(unsigned char)(c>>32)]++;
-    c1[(unsigned char)(c>>40)]++;
-    c2[(unsigned char)(c>>48)]++;
-    c3[                c>>56 ]++;
+    c0[(unsigned char) d     ]++;
+    c1[(unsigned char)(d>>8) ]++;
+    c2[(unsigned char)(d>>16)]++;
+    c3[(unsigned char)(d>>24)]++;
+    c0[(unsigned char)(d>>32)]++;
+    c1[(unsigned char)(d>>40)]++;
+    c2[(unsigned char)(d>>48)]++;
+    c3[                d>>56 ]++;
   }
   while(ip < in+inlen) c0[*ip++]++;
  
@@ -207,6 +172,7 @@ int hist_8_64(unsigned char *in, unsigned inlen) {
   unsigned long long 			cp = *(unsigned long long *)in;
   for(ip = in; ip != in+(inlen&~(16-1)); ) {    
     unsigned long long c = cp; ip += 8; cp = *(unsigned long long *)ip; 
+    unsigned long long d = cp; ip += 8; cp = *(unsigned long long *)ip; 
     c0[(unsigned char) c     ]++;
     c1[(unsigned char)(c>>8) ]++;
     c2[(unsigned char)(c>>16)]++;
@@ -216,15 +182,14 @@ int hist_8_64(unsigned char *in, unsigned inlen) {
     c6[(unsigned char)(c>>48)]++;
     c7[                c>>56 ]++;
 
-    		       c = cp;  ip += 8; cp = *(unsigned long long *)ip; 
-    c0[(unsigned char) c     ]++;
-    c1[(unsigned char)(c>>8) ]++;
-    c2[(unsigned char)(c>>16)]++;
-    c3[(unsigned char)(c>>24)]++;
-    c4[(unsigned char)(c>>32)]++;
-    c5[(unsigned char)(c>>40)]++;
-    c6[(unsigned char)(c>>48)]++;
-    c7[                c>>56 ]++;
+    c0[(unsigned char) d     ]++;
+    c1[(unsigned char)(d>>8) ]++;
+    c2[(unsigned char)(d>>16)]++;
+    c3[(unsigned char)(d>>24)]++;
+    c4[(unsigned char)(d>>32)]++;
+    c5[(unsigned char)(d>>40)]++;
+    c6[(unsigned char)(d>>48)]++;
+    c7[                d>>56 ]++;
   }
   while(ip < in+inlen) c0[*ip++]++; 
 
@@ -236,27 +201,46 @@ int hist_8_64(unsigned char *in, unsigned inlen) {
 
   #ifdef __SSE4_1__
 int hist_4_128(unsigned char *in, unsigned inlen) { 
-    bin_t c0[256]={0},c1[256]={0},c2[256]={0},c3[256]={0}; 
+  bin_t c0[256+PAD8]={0},c1[256+PAD8]={0},c2[256+PAD8]={0},c3[256+PAD8]={0}; 
+
   unsigned char *ip;
-  __m128i vcp = _mm_loadu_si128((__m128i*)in);
-  for(ip = in; ip != in+(inlen&~(16-1)); ) {
-    __m128i vc=vcp; ip += 16; vcp = _mm_loadu_si128((__m128i*)ip);
-    c0[_mm_extract_epi8(vc,  0)]++;
-    c1[_mm_extract_epi8(vc,  1)]++;
-    c2[_mm_extract_epi8(vc,  2)]++;
-    c3[_mm_extract_epi8(vc,  3)]++;
-    c0[_mm_extract_epi8(vc,  4)]++;
-    c1[_mm_extract_epi8(vc,  5)]++;
-    c2[_mm_extract_epi8(vc,  6)]++;
-    c3[_mm_extract_epi8(vc,  7)]++;
-    c0[_mm_extract_epi8(vc,  8)]++;
-    c1[_mm_extract_epi8(vc,  9)]++;
-    c2[_mm_extract_epi8(vc, 10)]++;
-    c3[_mm_extract_epi8(vc, 11)]++;
-    c0[_mm_extract_epi8(vc, 12)]++;
-    c1[_mm_extract_epi8(vc, 13)]++;
-    c2[_mm_extract_epi8(vc, 14)]++;
-    c3[_mm_extract_epi8(vc, 15)]++;
+  __m128i cpv = _mm_loadu_si128((__m128i*)in);
+  for(ip = in; ip != in+(inlen&~(32-1)); ) {
+    __m128i cv=cpv; 	    ip += 16; cpv = _mm_loadu_si128((__m128i*)ip); 
+    __m128i dv=cpv;         ip += 16; cpv = _mm_loadu_si128((__m128i*)ip); 
+    c0[_mm_extract_epi8(cv,  0)]++;
+    c1[_mm_extract_epi8(cv,  1)]++;
+    c2[_mm_extract_epi8(cv,  2)]++;
+    c3[_mm_extract_epi8(cv,  3)]++;
+    c0[_mm_extract_epi8(cv,  4)]++;
+    c1[_mm_extract_epi8(cv,  5)]++;
+    c2[_mm_extract_epi8(cv,  6)]++;
+    c3[_mm_extract_epi8(cv,  7)]++;
+    c0[_mm_extract_epi8(cv,  8)]++;
+    c1[_mm_extract_epi8(cv,  9)]++;
+    c2[_mm_extract_epi8(cv, 10)]++;
+    c3[_mm_extract_epi8(cv, 11)]++;
+    c0[_mm_extract_epi8(cv, 12)]++;
+    c1[_mm_extract_epi8(cv, 13)]++;
+    c2[_mm_extract_epi8(cv, 14)]++;
+    c3[_mm_extract_epi8(cv, 15)]++;
+
+    c0[_mm_extract_epi8(dv,  0)]++;
+    c1[_mm_extract_epi8(dv,  1)]++;
+    c2[_mm_extract_epi8(dv,  2)]++;
+    c3[_mm_extract_epi8(dv,  3)]++;
+    c0[_mm_extract_epi8(dv,  4)]++;
+    c1[_mm_extract_epi8(dv,  5)]++;
+    c2[_mm_extract_epi8(dv,  6)]++;
+    c3[_mm_extract_epi8(dv,  7)]++;
+    c0[_mm_extract_epi8(dv,  8)]++;
+    c1[_mm_extract_epi8(dv,  9)]++;
+    c2[_mm_extract_epi8(dv, 10)]++;
+    c3[_mm_extract_epi8(dv, 11)]++;
+    c0[_mm_extract_epi8(dv, 12)]++;
+    c1[_mm_extract_epi8(dv, 13)]++;
+    c2[_mm_extract_epi8(dv, 14)]++;
+    c3[_mm_extract_epi8(dv, 15)]++;
   }
   while(ip < in+inlen) c0[*ip++]++; 
 
@@ -270,25 +254,43 @@ int hist_8_128(unsigned char *in, unsigned inlen) {
   bin_t c0[256+PAD8]={0},c1[256+PAD8]={0},c2[256+PAD8]={0},c3[256+PAD8]={0},c4[256+PAD8]={0},c5[256+PAD8]={0},c6[256+PAD8]={0},c7[256+PAD8]={0}; 
 
   unsigned char *ip;
-  __m128i vcp = _mm_loadu_si128((__m128i*)in);
-  for(ip = in; ip != in+(inlen&~(16-1)); ) {
-    __m128i vc=vcp; ip += 16; vcp = _mm_loadu_si128((__m128i*)ip); 
-    c0[_mm_extract_epi8(vc,  0)]++;
-    c1[_mm_extract_epi8(vc,  1)]++;
-    c2[_mm_extract_epi8(vc,  2)]++;
-    c3[_mm_extract_epi8(vc,  3)]++;
-    c4[_mm_extract_epi8(vc,  4)]++;
-    c5[_mm_extract_epi8(vc,  5)]++;
-    c6[_mm_extract_epi8(vc,  6)]++;
-    c7[_mm_extract_epi8(vc,  7)]++;
-    c0[_mm_extract_epi8(vc,  8)]++;
-    c1[_mm_extract_epi8(vc,  9)]++;
-    c2[_mm_extract_epi8(vc, 10)]++;
-    c3[_mm_extract_epi8(vc, 11)]++;
-    c4[_mm_extract_epi8(vc, 12)]++;
-    c5[_mm_extract_epi8(vc, 13)]++;
-    c6[_mm_extract_epi8(vc, 14)]++;
-    c7[_mm_extract_epi8(vc, 15)]++;
+  __m128i cpv = _mm_loadu_si128((__m128i*)in);
+  for(ip = in; ip != in+(inlen&~(32-1)); ) {
+    __m128i cv=cpv; 	    ip += 16; cpv = _mm_loadu_si128((__m128i*)ip); 
+    __m128i dv=cpv;         ip += 16; cpv = _mm_loadu_si128((__m128i*)ip); 
+    c0[_mm_extract_epi8(cv,  0)]++;
+    c1[_mm_extract_epi8(cv,  1)]++;
+    c2[_mm_extract_epi8(cv,  2)]++;
+    c3[_mm_extract_epi8(cv,  3)]++;
+    c4[_mm_extract_epi8(cv,  4)]++;
+    c5[_mm_extract_epi8(cv,  5)]++;
+    c6[_mm_extract_epi8(cv,  6)]++;
+    c7[_mm_extract_epi8(cv,  7)]++;
+    c0[_mm_extract_epi8(cv,  8)]++;
+    c1[_mm_extract_epi8(cv,  9)]++;
+    c2[_mm_extract_epi8(cv, 10)]++;
+    c3[_mm_extract_epi8(cv, 11)]++;
+    c4[_mm_extract_epi8(cv, 12)]++;
+    c5[_mm_extract_epi8(cv, 13)]++;
+    c6[_mm_extract_epi8(cv, 14)]++;
+    c7[_mm_extract_epi8(cv, 15)]++;
+
+    c0[_mm_extract_epi8(dv,  0)]++;
+    c1[_mm_extract_epi8(dv,  1)]++;
+    c2[_mm_extract_epi8(dv,  2)]++;
+    c3[_mm_extract_epi8(dv,  3)]++;
+    c4[_mm_extract_epi8(dv,  4)]++;
+    c5[_mm_extract_epi8(dv,  5)]++;
+    c6[_mm_extract_epi8(dv,  6)]++;
+    c7[_mm_extract_epi8(dv,  7)]++;
+    c0[_mm_extract_epi8(dv,  8)]++;
+    c1[_mm_extract_epi8(dv,  9)]++;
+    c2[_mm_extract_epi8(dv, 10)]++;
+    c3[_mm_extract_epi8(dv, 11)]++;
+    c4[_mm_extract_epi8(dv, 12)]++;
+    c5[_mm_extract_epi8(dv, 13)]++;
+    c6[_mm_extract_epi8(dv, 14)]++;
+    c7[_mm_extract_epi8(dv, 15)]++;
   }
   while(ip < in+inlen) c0[*ip++]++; 
 
@@ -392,6 +394,41 @@ int count2x64(uint8_t *src, size_t srcSize)
   #endif
 
 //----------------------------------------------------------------------------------------------------------------------------
+typedef unsigned long long tm_t;
+static tm_t tmtime(void);
+
+  #ifdef _MSC_VER
+#include <intrin.h>
+  #else
+#include <x86intrin.h>
+  #endif
+
+  #ifdef _WIN32
+#include <windows.h>
+#define TM_T 1
+
+static tm_t tmtime(void) {
+  LARGE_INTEGER tm;
+  QueryPerformanceCounter(&tm);
+  return (tm_t)(tm.QuadPart/tps.QuadPart);
+}
+
+LARGE_INTEGER tps;
+static tm_t tminit() { QueryPerformanceFrequency(&tps); tm_t t0=tmtime(),ts; while((ts = tmtime())==t0); return ts; } 
+  #else
+#include <sys/time.h>
+#include <sys/resource.h>
+#define TM_T 1000000.0
+static tm_t tmtime(void) {
+  struct timeval tm;
+  gettimeofday(&tm, NULL);
+  return (tm_t)tm.tv_sec*1000000ull + tm.tv_usec;
+}
+
+static tm_t tminit() {                                  tm_t t0=tmtime(),ts; while((ts = tmtime())==t0); return ts; }
+  #endif
+
+//----------------------------------------------------------------------------------
 #define MBS 1000000.0 //MiBS 1048576.0
 
 #define TMPRINT(__x) { printf("%7.2f MB/s\t%3.1f clocks/symbol\tc=%d it=%d\t%s\n", (double)(tc>=0.000001?(((double)n*it/MBS)/(((double)tc/1)/TM_T)):0.0), (double)cc/((double)n*it), r, it, __x); }
