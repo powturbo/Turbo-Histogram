@@ -38,4 +38,3 @@ i7-2600k at 4.5GHz, gcc 4.9, ubuntu 14.10.
 ## Reference:
 Countbench: https://github.com/nkurz/countbench (including "count2x64" with inline assembly)
 
-Blog: http://fastcompression.blogspot.com/2014/09/counting-bytes-fast-little-trick-from.html
