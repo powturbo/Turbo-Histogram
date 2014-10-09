@@ -3,7 +3,8 @@ TurboHist
 
 Fastest Histogram Construction
 - ~1.3 clocks per byte
-- 100% C without inline assembly
+- 100% C, without inline assembly
+- Both 32 and 64 bits supported
 
 # Benchmark:
 i7-2600k at 4.5GHz, gcc 4.9, ubuntu 14.10.
