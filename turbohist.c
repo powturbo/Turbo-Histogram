@@ -116,30 +116,65 @@ int hist_8_32(unsigned char *in, unsigned inlen) { // Optimized for x86
   RET;
 }
 
+int hist_4_64(unsigned char *in, unsigned inlen) { // Optimized for x86
+  bin_t c0[256+PAD8]={0},c1[256+PAD8]={0},c2[256+PAD8]={0},c3[256+PAD8]={0}; 
+
+  unsigned char *ip;
+  unsigned long long 		    cp = *(unsigned long long*)in;  
+  for(ip = in; ip != in+(inlen&~(16-1));) {  
+    unsigned 	c = cp,	d = cp>>32; cp = *(unsigned long long*)(ip+=8);    
+    c0[(unsigned char) c    ]++;
+    c1[(unsigned char) d    ]++;
+    c2[(unsigned char)(c>>8)]++; c>>=16;
+    c3[(unsigned char)(d>>8)]++; d>>=16; 
+    c0[(unsigned char) c    ]++;
+    c1[(unsigned char) d    ]++;
+    c2[ 	       c>>8 ]++;
+    c3[ 	       d>>8 ]++; 
+    
+     		c = cp,	d = cp>>32; cp = *(unsigned long long*)(ip+=8);    
+    c0[(unsigned char) c    ]++;
+    c1[(unsigned char) d    ]++;
+    c2[(unsigned char)(c>>8)]++; c>>=16;
+    c3[(unsigned char)(d>>8)]++; d>>=16;
+    c0[(unsigned char) c    ]++;
+    c1[(unsigned char) d    ]++;
+    c2[ 	       c>>8 ]++;
+    c3[ 	       d>>8 ]++; 
+  }
+  while(ip < in+inlen) c0[*ip++]++; 
+
+  int i;
+  for(i = 0; i < 256; i++) 
+    c0[i] += c1[i]+c2[i]+c3[i];
+  RET;
+}
+
 int hist_8_64(unsigned char *in, unsigned inlen) { // Optimized for x86
   bin_t c0[256+PAD8]={0},c1[256+PAD8]={0},c2[256+PAD8]={0},c3[256+PAD8]={0},c4[256+PAD8]={0},c5[256+PAD8]={0},c6[256+PAD8]={0},c7[256+PAD8]={0}; 
 
   unsigned char *ip;
-  unsigned long long           					   cp = *(unsigned long long*)in;  
-  for(ip = in; ip != in+(inlen&~(16-1));) { 
-    unsigned long long c = cp,	d = *(unsigned long long*)(ip+=8); cp = *(unsigned long long*)(ip+=8);    
-    c0[(unsigned char) c     ]++;
-    c1[(unsigned char)(c>>8) ]++;
-    c2[(unsigned char)(c>>16)]++;
-    c3[(unsigned char)(c>>24)]++;
-    c4[(unsigned char)(c>>32)]++;
-    c5[(unsigned char)(c>>40)]++;
-    c6[(unsigned char)(c>>48)]++;
-    c7[                c>>56 ]++;
-
-    c0[(unsigned char) d     ]++;
-    c1[(unsigned char)(d>>8) ]++;
-    c2[(unsigned char)(d>>16)]++;
-    c3[(unsigned char)(d>>24)]++;
-    c4[(unsigned char)(d>>32)]++;
-    c5[(unsigned char)(d>>40)]++;
-    c6[(unsigned char)(d>>48)]++;
-    c7[                d>>56 ]++;
+  unsigned long long 		    cp = *(unsigned long long*)in;  
+  for(ip = in; ip != in+(inlen&~(16-1));) {  
+    unsigned 	c = cp,	d = cp>>32; cp = *(unsigned long long*)(ip+=8);    
+    c0[(unsigned char) c    ]++;
+    c1[(unsigned char) d    ]++;
+    c2[(unsigned char)(c>>8)]++; c>>=16;
+    c3[(unsigned char)(d>>8)]++; d>>=16; 
+    c4[(unsigned char) c    ]++;
+    c5[(unsigned char) d    ]++;
+    c6[ 	       c>>8 ]++;
+    c7[ 	       d>>8 ]++; 
+    
+     		c = cp,	d = cp>>32; cp = *(unsigned long long*)(ip+=8);    
+    c0[(unsigned char) c    ]++;
+    c1[(unsigned char) d    ]++;
+    c2[(unsigned char)(c>>8)]++; c>>=16;
+    c3[(unsigned char)(d>>8)]++; d>>=16;
+    c4[(unsigned char) c    ]++;
+    c5[(unsigned char) d    ]++;
+    c6[ 	       c>>8 ]++;
+    c7[ 	       d>>8 ]++; 
   }
   while(ip < in+inlen) c0[*ip++]++; 
 
@@ -149,41 +184,7 @@ int hist_8_64(unsigned char *in, unsigned inlen) { // Optimized for x86
   RET;
 }
 
-int hist_4_64(unsigned char *in, unsigned inlen) { 
-  bin_t c0[256]={0},c1[256]={0},c2[256]={0},c3[256]={0}; 
-
-  unsigned char *ip;
-  unsigned long long 						   cp = *(unsigned long long *)in;
-  for(ip = in; ip != in+(inlen&~(16-1)); ) {    
-    unsigned long long c = cp,	d = *(unsigned long long*)(ip+=8); cp = *(unsigned long long*)(ip+=8);    
-    c0[(unsigned char) c     ]++;
-    c1[(unsigned char)(c>>8) ]++;
-    c2[(unsigned char)(c>>16)]++;
-    c3[(unsigned char)(c>>24)]++;
-    c0[(unsigned char)(c>>32)]++;
-    c1[(unsigned char)(c>>40)]++;
-    c2[(unsigned char)(c>>48)]++;
-    c3[                c>>56 ]++;
-
-    c0[(unsigned char) d     ]++;
-    c1[(unsigned char)(d>>8) ]++;
-    c2[(unsigned char)(d>>16)]++;
-    c3[(unsigned char)(d>>24)]++;
-    c0[(unsigned char)(d>>32)]++;
-    c1[(unsigned char)(d>>40)]++;
-    c2[(unsigned char)(d>>48)]++;
-    c3[                d>>56 ]++;
-  }
-  while(ip < in+inlen) c0[*ip++]++;
- 
-  int i;
-  for(i = 0; i < 256; i++) 
-    c0[i] += c1[i]+c2[i]+c3[i];
-  RET;
-}
-
-//------------------------------------------------------------------------------------------
-//#define NKURTZ
+#define NKURTZ
 #include <string.h>
   #ifdef NKURTZ
 // Not portable "count2x64" from https://github.com/nkurz/countbench
@@ -283,40 +284,38 @@ int hist_4_128(unsigned char *in, unsigned inlen) {
   unsigned char *ip;
   __m128i cpv = _mm_loadu_si128((__m128i*)in);
   for(ip = in; ip != in+(inlen&~(32-1)); ) {
-    __m128i cv=cpv; 	    ip += 16; cpv = _mm_loadu_si128((__m128i*)ip); 
-    __m128i dv=cpv;         ip += 16; cpv = _mm_loadu_si128((__m128i*)ip); 
+    __m128i cv=cpv, dv = _mm_loadu_si128((__m128i*)(ip+=16)); cpv = _mm_loadu_si128((__m128i*)(ip+=16)); 
     c0[_mm_extract_epi8(cv,  0)]++;
-    c1[_mm_extract_epi8(cv,  1)]++;
-    c2[_mm_extract_epi8(cv,  2)]++;
-    c3[_mm_extract_epi8(cv,  3)]++;
-    c0[_mm_extract_epi8(cv,  4)]++;
-    c1[_mm_extract_epi8(cv,  5)]++;
-    c2[_mm_extract_epi8(cv,  6)]++;
-    c3[_mm_extract_epi8(cv,  7)]++;
-    c0[_mm_extract_epi8(cv,  8)]++;
-    c1[_mm_extract_epi8(cv,  9)]++;
-    c2[_mm_extract_epi8(cv, 10)]++;
-    c3[_mm_extract_epi8(cv, 11)]++;
-    c0[_mm_extract_epi8(cv, 12)]++;
-    c1[_mm_extract_epi8(cv, 13)]++;
-    c2[_mm_extract_epi8(cv, 14)]++;
-    c3[_mm_extract_epi8(cv, 15)]++;
-
-    c0[_mm_extract_epi8(dv,  0)]++;
-    c1[_mm_extract_epi8(dv,  1)]++;
-    c2[_mm_extract_epi8(dv,  2)]++;
+    c1[_mm_extract_epi8(dv,  0)]++;
+    c2[_mm_extract_epi8(cv,  1)]++;
+    c3[_mm_extract_epi8(dv,  1)]++;
+    c0[_mm_extract_epi8(cv,  2)]++;
+    c1[_mm_extract_epi8(dv,  2)]++;
+    c2[_mm_extract_epi8(cv,  3)]++;
     c3[_mm_extract_epi8(dv,  3)]++;
-    c0[_mm_extract_epi8(dv,  4)]++;
-    c1[_mm_extract_epi8(dv,  5)]++;
-    c2[_mm_extract_epi8(dv,  6)]++;
+    c0[_mm_extract_epi8(cv,  4)]++;
+    c1[_mm_extract_epi8(dv,  4)]++;
+    c2[_mm_extract_epi8(cv,  5)]++;
+    c3[_mm_extract_epi8(dv,  5)]++;
+    c0[_mm_extract_epi8(cv,  6)]++;
+    c1[_mm_extract_epi8(dv,  6)]++;
+    c2[_mm_extract_epi8(cv,  7)]++;
     c3[_mm_extract_epi8(dv,  7)]++;
-    c0[_mm_extract_epi8(dv,  8)]++;
-    c1[_mm_extract_epi8(dv,  9)]++;
-    c2[_mm_extract_epi8(dv, 10)]++;
+    c0[_mm_extract_epi8(cv,  8)]++;
+    c1[_mm_extract_epi8(dv,  8)]++;
+    c2[_mm_extract_epi8(cv,  9)]++;
+    c3[_mm_extract_epi8(dv,  9)]++;
+    c0[_mm_extract_epi8(cv, 10)]++;
+    c1[_mm_extract_epi8(dv, 10)]++;
+    c2[_mm_extract_epi8(cv, 11)]++;
     c3[_mm_extract_epi8(dv, 11)]++;
-    c0[_mm_extract_epi8(dv, 12)]++;
-    c1[_mm_extract_epi8(dv, 13)]++;
-    c2[_mm_extract_epi8(dv, 14)]++;
+    c0[_mm_extract_epi8(cv, 12)]++;
+    c1[_mm_extract_epi8(dv, 12)]++;
+    c2[_mm_extract_epi8(cv, 13)]++;
+    c3[_mm_extract_epi8(dv, 13)]++;
+    c0[_mm_extract_epi8(cv, 14)]++;
+    c1[_mm_extract_epi8(dv, 14)]++;
+    c2[_mm_extract_epi8(cv, 15)]++;
     c3[_mm_extract_epi8(dv, 15)]++;
   }
   while(ip < in+inlen) c0[*ip++]++; 
@@ -333,41 +332,138 @@ int hist_8_128(unsigned char *in, unsigned inlen) {
   unsigned char *ip;
   __m128i cpv = _mm_loadu_si128((__m128i*)in);
   for(ip = in; ip != in+(inlen&~(32-1)); ) {
-    __m128i cv=cpv; 	    ip += 16; cpv = _mm_loadu_si128((__m128i*)ip); 
-    __m128i dv=cpv;         ip += 16; cpv = _mm_loadu_si128((__m128i*)ip); 
+    __m128i cv=cpv, dv = _mm_loadu_si128((__m128i*)(ip+=16)); cpv = _mm_loadu_si128((__m128i*)(ip+=16)); 
     c0[_mm_extract_epi8(cv,  0)]++;
-    c1[_mm_extract_epi8(cv,  1)]++;
-    c2[_mm_extract_epi8(cv,  2)]++;
-    c3[_mm_extract_epi8(cv,  3)]++;
-    c4[_mm_extract_epi8(cv,  4)]++;
-    c5[_mm_extract_epi8(cv,  5)]++;
-    c6[_mm_extract_epi8(cv,  6)]++;
-    c7[_mm_extract_epi8(cv,  7)]++;
-    c0[_mm_extract_epi8(cv,  8)]++;
-    c1[_mm_extract_epi8(cv,  9)]++;
-    c2[_mm_extract_epi8(cv, 10)]++;
-    c3[_mm_extract_epi8(cv, 11)]++;
-    c4[_mm_extract_epi8(cv, 12)]++;
-    c5[_mm_extract_epi8(cv, 13)]++;
-    c6[_mm_extract_epi8(cv, 14)]++;
-    c7[_mm_extract_epi8(cv, 15)]++;
-
-    c0[_mm_extract_epi8(dv,  0)]++;
-    c1[_mm_extract_epi8(dv,  1)]++;
-    c2[_mm_extract_epi8(dv,  2)]++;
-    c3[_mm_extract_epi8(dv,  3)]++;
-    c4[_mm_extract_epi8(dv,  4)]++;
-    c5[_mm_extract_epi8(dv,  5)]++;
-    c6[_mm_extract_epi8(dv,  6)]++;
+    c1[_mm_extract_epi8(dv,  0)]++;
+    c2[_mm_extract_epi8(cv,  1)]++;
+    c3[_mm_extract_epi8(dv,  1)]++;
+    c4[_mm_extract_epi8(cv,  2)]++;
+    c5[_mm_extract_epi8(dv,  2)]++;
+    c6[_mm_extract_epi8(cv,  3)]++;
+    c7[_mm_extract_epi8(dv,  3)]++;
+    c0[_mm_extract_epi8(cv,  4)]++;
+    c1[_mm_extract_epi8(dv,  4)]++;
+    c2[_mm_extract_epi8(cv,  5)]++;
+    c3[_mm_extract_epi8(dv,  5)]++;
+    c4[_mm_extract_epi8(cv,  6)]++;
+    c5[_mm_extract_epi8(dv,  6)]++;
+    c6[_mm_extract_epi8(cv,  7)]++;
     c7[_mm_extract_epi8(dv,  7)]++;
-    c0[_mm_extract_epi8(dv,  8)]++;
-    c1[_mm_extract_epi8(dv,  9)]++;
-    c2[_mm_extract_epi8(dv, 10)]++;
-    c3[_mm_extract_epi8(dv, 11)]++;
-    c4[_mm_extract_epi8(dv, 12)]++;
-    c5[_mm_extract_epi8(dv, 13)]++;
-    c6[_mm_extract_epi8(dv, 14)]++;
+    c0[_mm_extract_epi8(cv,  8)]++;
+    c1[_mm_extract_epi8(dv,  8)]++;
+    c2[_mm_extract_epi8(cv,  9)]++;
+    c3[_mm_extract_epi8(dv,  9)]++;
+    c4[_mm_extract_epi8(cv, 10)]++;
+    c5[_mm_extract_epi8(dv, 10)]++;
+    c6[_mm_extract_epi8(cv, 11)]++;
+    c7[_mm_extract_epi8(dv, 11)]++;
+    c0[_mm_extract_epi8(cv, 12)]++;
+    c1[_mm_extract_epi8(dv, 12)]++;
+    c2[_mm_extract_epi8(cv, 13)]++;
+    c3[_mm_extract_epi8(dv, 13)]++;
+    c4[_mm_extract_epi8(cv, 14)]++;
+    c5[_mm_extract_epi8(dv, 14)]++;
+    c6[_mm_extract_epi8(cv, 15)]++;
     c7[_mm_extract_epi8(dv, 15)]++;
+  }
+  while(ip < in+inlen) c0[*ip++]++; 
+
+  int i;
+  for(i = 0; i < 256; i++) 
+    c0[i] += c1[i]+c2[i]+c3[i]+c4[i]+c5[i]+c6[i]+c7[i];
+  RET;
+}
+  #endif
+
+  #ifdef __AVX2__
+#include <immintrin.h>
+int hist_4_256(unsigned char *in, unsigned inlen) { 
+  bin_t c0[256+PAD8]={0},c1[256+PAD8]={0},c2[256+PAD8]={0},c3[256+PAD8]={0}; 
+
+  unsigned char *ip;
+  __m256i cpv = _mm256_loadu_si256((__m256i*)in);
+  for(ip = in; ip != in+(inlen&~(32-1)); ) {
+    __m256i cv=cpv; cpv = _mm256_loadu_si256((__m256i*)(ip+=32)); 
+    c0[_mm256_extract_epi8(cv,  0)]++;
+    c1[_mm256_extract_epi8(cv,  1)]++;
+    c2[_mm256_extract_epi8(cv,  2)]++;
+    c3[_mm256_extract_epi8(cv,  3)]++;
+    c0[_mm256_extract_epi8(cv,  4)]++;
+    c1[_mm256_extract_epi8(cv,  5)]++;
+    c2[_mm256_extract_epi8(cv,  6)]++;
+    c3[_mm256_extract_epi8(cv,  7)]++;
+    c0[_mm256_extract_epi8(cv,  8)]++;
+    c1[_mm256_extract_epi8(cv,  9)]++;
+    c2[_mm256_extract_epi8(cv, 10)]++;
+    c3[_mm256_extract_epi8(cv, 11)]++;
+    c0[_mm256_extract_epi8(cv, 12)]++;
+    c1[_mm256_extract_epi8(cv, 13)]++;
+    c2[_mm256_extract_epi8(cv, 14)]++;
+    c3[_mm256_extract_epi8(cv, 15)]++;
+    c0[_mm256_extract_epi8(cv, 16)]++;
+    c1[_mm256_extract_epi8(cv, 17)]++;
+    c2[_mm256_extract_epi8(cv, 18)]++;
+    c3[_mm256_extract_epi8(cv, 19)]++;
+    c0[_mm256_extract_epi8(cv, 20)]++;
+    c1[_mm256_extract_epi8(cv, 21)]++;
+    c2[_mm256_extract_epi8(cv, 22)]++;
+    c3[_mm256_extract_epi8(cv, 23)]++;
+    c0[_mm256_extract_epi8(cv, 24)]++;
+    c1[_mm256_extract_epi8(cv, 25)]++;
+    c2[_mm256_extract_epi8(cv, 26)]++;
+    c3[_mm256_extract_epi8(cv, 27)]++;
+    c0[_mm256_extract_epi8(cv, 28)]++;
+    c1[_mm256_extract_epi8(cv, 29)]++;
+    c2[_mm256_extract_epi8(cv, 30)]++;
+    c3[_mm256_extract_epi8(cv, 31)]++;
+  }
+  while(ip < in+inlen) c0[*ip++]++; 
+
+  int i;
+  for(i = 0; i < 256; i++) 
+    c0[i] += c1[i]+c2[i]+c3[i];
+  RET;
+}
+
+int hist_8_256(unsigned char *in, unsigned inlen) { 
+  bin_t c0[256+PAD8]={0},c1[256+PAD8]={0},c2[256+PAD8]={0},c3[256+PAD8]={0},c4[256+PAD8]={0},c5[256+PAD8]={0},c6[256+PAD8]={0},c7[256+PAD8]={0}; 
+
+  unsigned char *ip;
+  __m256i cpv = _mm256_loadu_si256((__m256i*)in);
+  for(ip = in; ip != in+(inlen&~(32-1)); ) {
+    __m256i cv=cpv; cpv = _mm256_loadu_si256((__m256i*)(ip+=32)); 
+    c0[_mm256_extract_epi8(cv,  0)]++;
+    c1[_mm256_extract_epi8(cv,  1)]++;
+    c2[_mm256_extract_epi8(cv,  2)]++;
+    c3[_mm256_extract_epi8(cv,  3)]++;
+    c4[_mm256_extract_epi8(cv,  4)]++;
+    c5[_mm256_extract_epi8(cv,  5)]++;
+    c6[_mm256_extract_epi8(cv,  6)]++;
+    c7[_mm256_extract_epi8(cv,  7)]++;
+    c0[_mm256_extract_epi8(cv,  8)]++;
+    c1[_mm256_extract_epi8(cv,  9)]++;
+    c2[_mm256_extract_epi8(cv, 10)]++;
+    c3[_mm256_extract_epi8(cv, 11)]++;
+    c4[_mm256_extract_epi8(cv, 12)]++;
+    c5[_mm256_extract_epi8(cv, 13)]++;
+    c6[_mm256_extract_epi8(cv, 14)]++;
+    c7[_mm256_extract_epi8(cv, 15)]++;
+    c0[_mm256_extract_epi8(cv, 16)]++;
+    c1[_mm256_extract_epi8(cv, 17)]++;
+    c2[_mm256_extract_epi8(cv, 18)]++;
+    c3[_mm256_extract_epi8(cv, 19)]++;
+    c4[_mm256_extract_epi8(cv, 20)]++;
+    c5[_mm256_extract_epi8(cv, 21)]++;
+    c6[_mm256_extract_epi8(cv, 22)]++;
+    c7[_mm256_extract_epi8(cv, 23)]++;
+    c0[_mm256_extract_epi8(cv, 24)]++;
+    c1[_mm256_extract_epi8(cv, 25)]++;
+    c2[_mm256_extract_epi8(cv, 26)]++;
+    c3[_mm256_extract_epi8(cv, 27)]++;
+    c4[_mm256_extract_epi8(cv, 28)]++;
+    c5[_mm256_extract_epi8(cv, 29)]++;
+    c6[_mm256_extract_epi8(cv, 30)]++;
+    c7[_mm256_extract_epi8(cv, 31)]++;
   }
   while(ip < in+inlen) c0[*ip++]++; 
 
@@ -472,6 +568,10 @@ int main(int argc, char *argv[]) { int i; unsigned char *in;int n,reps=GB; tm_t 
     TMBEG process(hist_4_128,in,n);  	TMEND;	TMPRINT("hist_4_128");
       #endif
 
+      #ifdef __AVX2__
+    TMBEG process(hist_8_256,in,n);  	TMEND;	TMPRINT("hist_8_256");
+    TMBEG process(hist_4_256,in,n);  	TMEND;	TMPRINT("hist_4_256");
+      #endif
     TMBEG process(hist_8_64, in,n); 	TMEND;	TMPRINT("hist_8_64");
     TMBEG process(hist_4_64, in,n); 	TMEND;	TMPRINT("hist_4_64");
 
@@ -481,4 +581,3 @@ int main(int argc, char *argv[]) { int i; unsigned char *in;int n,reps=GB; tm_t 
   }
   free(in);
 }
-
