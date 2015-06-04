@@ -1,4 +1,4 @@
-TurboHist-Fastest Histogram Construction
+TurboHist: Fastest Histogram Construction
 =========================================
 
 - ~1.2 clocks per byte
@@ -43,5 +43,5 @@ i7-2600k at 4.5GHz, gcc 5.1, ubuntu 15.04.
   turbohist file
 
 ## Reference:
-Countbench: https://github.com/nkurz/countbench (including "count2x64" with inline assembly)
+Countbench: https://github.com/nkurz/countbench (including "count2x64" with inline assembly)
 
