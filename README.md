@@ -1,5 +1,4 @@
 TurboHist:Fastest Histogram Construction
-========================================
 
 - ~1.2 clocks per byte
 - 100% C (& C++ compatible) without inline assembly
@@ -36,7 +35,7 @@ i7-2600k at 4.5GHz, gcc 5.1, ubuntu 15.04.
 
 ## OS/Compiler
   - Linux: gcc (>=4.6)
-    clang (>=3.2)
+  - clang (>=3.2)
   - Windows: mingw-w64 (>=4.6)
 
 ## Usage:
