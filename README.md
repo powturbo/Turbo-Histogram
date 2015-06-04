@@ -1,5 +1,5 @@
-TurboHist: Fastest Histogram Construction
-=========================================
+TurboHist:Fastest Histogram Construction
+========================================
 
 - ~1.2 clocks per byte
 - 100% C (& C++ compatible) without inline assembly
