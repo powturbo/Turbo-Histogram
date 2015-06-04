@@ -1,4 +1,4 @@
-TurboHist: Fastest Histogram Construction
+TurboHist-Fastest Histogram Construction
 =========================================
 
 - ~1.2 clocks per byte
