@@ -38,10 +38,9 @@ i7-2600k at 4.5GHz, gcc 5.1, ubuntu 15.04.
   - Linux: gcc (>=4.6)
   - clang (>=3.2)
   - Windows: mingw-w64 (>=4.6)
-
+
 ## Usage:
   turbohist file
 
 ## Reference:
 Countbench: https://github.com/nkurz/countbench (including "count2x64" with inline assembly)
-
