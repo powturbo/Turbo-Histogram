@@ -34,7 +34,7 @@ i7-2600k at 4.5GHz, gcc 5.1, ubuntu 15.04.
 ## Compile:
 
 
-  cc -O3 -march=native turbohist.c -o turbohist
+        cc -O3 -march=native turbohist.c -o turbohist
 
 ## OS/Compiler
   - Linux: gcc (>=4.6)
@@ -44,7 +44,7 @@ i7-2600k at 4.5GHz, gcc 5.1, ubuntu 15.04.
 ## Usage:
 
 
-  turbohist file
+        turbohist file
 
 ## Reference:
 Countbench: https://github.com/nkurz/countbench (including "count2x64" with inline assembly)
