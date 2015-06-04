@@ -1,4 +1,5 @@
-// compile w. gcc -O3 -march=native turbohist.c -o turbohist
+// compile w. cc -O3 -march=native turbohist.c -o turbohist
+// tested w. Linux: gcc & clang, Windows: mingw-w64
 // homepage: http://sites.google.com/site/powturbo/ 
 
 //#define RET { unsigned a=0, i; for(i = 0; i < 256; i++) a+=i*c0[i]; return a;}  	// CheckSum
@@ -28,10 +29,10 @@ int hist_4_8(unsigned char *in, unsigned inlen) {
   unsigned char *ip; 
   for(ip = in; ip != in + (inlen&~(4-1)); ) 
     c0[*ip++]++, c1[*ip++]++, c2[*ip++]++, c3[*ip++]++; 
-  while(ip < in+inlen) 
+  while(ip != in+inlen)
     c0[*ip++]++; 
 
-  int i;for(i = 0; i < 256; i++) c0[i] += c1[i]+c2[i]+c3[i];
+  int i;for(i = 0; i != 256; i++) c0[i] += c1[i]+c2[i]+c3[i];
   RET;
 }
 
@@ -41,7 +42,7 @@ int hist_8_8(unsigned char *in, unsigned inlen) {
   unsigned char *ip; 
   for(ip=in; ip != in + (inlen&~(8-1)); ) 
     c0[*ip++]++, c1[*ip++]++, c2[*ip++]++, c3[*ip++]++, c4[*ip++]++, c5[*ip++]++, c6[*ip++]++, c7[*ip++]++; 
-  while(ip < in+inlen) 
+  while(ip != in+inlen)
     c0[*ip++]++; 
 
   int i;for(i = 0; i < 256; i++) c0[i] += c1[i]+c2[i]+c3[i]+c4[i]+c5[i]+c6[i]+c7[i];
@@ -74,7 +75,7 @@ int hist_4_32(unsigned char *in, unsigned inlen) { // Optimized for x86
     c2[ 	       c>>8 ]++;
     c3[ 	       d>>8 ]++; 
   }
-  while(ip < in+inlen) c0[*ip++]++; 
+  while(ip != in+inlen) c0[*ip++]++; 
 
   int i;
   for(i = 0; i < 256; i++) 
@@ -83,20 +84,21 @@ int hist_4_32(unsigned char *in, unsigned inlen) { // Optimized for x86
 }
 
 int hist_8_32(unsigned char *in, unsigned inlen) { // Optimized for x86
+  unsigned char *ip;
+  unsigned c, d, cp = *(unsigned *)in;
+
   bin_t c0[256+PAD8]={0},c1[256+PAD8]={0},c2[256+PAD8]={0},c3[256+PAD8]={0},c4[256+PAD8]={0},c5[256+PAD8]={0},c6[256+PAD8]={0},c7[256+PAD8]={0}; 
 
-  unsigned char *ip;
-  unsigned 					  cp = *(unsigned *)in;  
   for(ip = in; ip != in+(inlen&~(16-1));) {  
-    unsigned 	c = cp,	d = *(unsigned *)(ip+=4); cp = *(unsigned *)(ip+=4);    
+     		c = cp,	d = *(unsigned *)(ip+=4); cp = *(unsigned *)(ip+=4);    
     c0[(unsigned char) c    ]++;
     c1[(unsigned char) d    ]++;
     c2[(unsigned char)(c>>8)]++; c>>=16;
     c3[(unsigned char)(d>>8)]++; d>>=16; 
     c4[(unsigned char) c    ]++;
     c5[(unsigned char) d    ]++;
-    c6[ 	       c>>8 ]++;
-    c7[ 	       d>>8 ]++; 
+    c6[ 	           c>>8 ]++;
+    c7[ 	           d>>8 ]++; 
     
     		c = cp;	d = *(unsigned *)(ip+=4); cp = *(unsigned *)(ip+=4);    
     c0[(unsigned char) c    ]++;
@@ -105,10 +107,10 @@ int hist_8_32(unsigned char *in, unsigned inlen) { // Optimized for x86
     c3[(unsigned char)(d>>8)]++; d>>=16;
     c4[(unsigned char) c    ]++;
     c5[(unsigned char) d    ]++;
-    c6[ 	       c>>8 ]++;
-    c7[ 	       d>>8 ]++; 
+    c6[ 	           c>>8 ]++;
+    c7[ 	           d>>8 ]++; 
   }
-  while(ip < in+inlen) c0[*ip++]++; 
+  while(ip != in+inlen) c0[*ip++]++; 
 
   int i;
   for(i = 0; i < 256; i++) 
@@ -183,98 +185,6 @@ int hist_8_64(unsigned char *in, unsigned inlen) { // Optimized for x86
     c0[i] += c1[i]+c2[i]+c3[i]+c4[i]+c5[i]+c6[i]+c7[i];
   RET;
 }
-
-#define NKURTZ
-#include <string.h>
-  #ifdef NKURTZ
-// Not portable "count2x64" from https://github.com/nkurz/countbench
-#define COUNT_SIZE (256 + 8)
-
-#define ASM_SHIFT_RIGHT(reg, bitsToShift)                                \
-    __asm volatile ("shr %1, %0":                                       \
-                    "+r" (reg): /* read and written */                  \
-                    "i" (bitsToShift) /* constant */                    \
-                    )
-
-
-#define ASM_INC_TABLES(src0, src1, byte0, byte1, offset, size, base, scale) \
-    __asm volatile ("movzbl %b2, %k0\n"                /* byte0 = src0 & 0xFF */ \
-                    "movzbl %b3, %k1\n"                /* byte1 = src1 & 0xFF */ \
-                    "incl (%c4+0)*%c5(%6, %0, %c7)\n"  /* count[i+0][byte0]++ */ \
-                    "incl (%c4+1)*%c5(%6, %1, %c7)\n"  /* count[i+1][byte1]++ */ \
-                    "movzbl %h2, %k0\n"                /* byte0 = (src0 & 0xFF00) >> 8 */ \
-                    "movzbl %h3, %k1\n"                /* byte1 = (src1 & 0xFF00) >> 8 */ \
-                    "incl (%c4+2)*%c5(%6, %0, %c7)\n"  /* count[i+2][byte0]++ */ \
-                    "incl (%c4+3)*%c5(%6, %1, %c7)\n": /* count[i+3][byte1]++ */ \
-                    "=&R" (byte0),  /* write only (R == non REX) */     \
-                    "=&R" (byte1):  /* write only (R == non REX) */     \
-                    "Q" (src0),  /* read only (Q == must have rH) */    \
-                    "Q" (src1),  /* read only (Q == must have rH) */    \
-                    "i" (offset), /* constant array offset */           \
-                    "i" (size), /* constant array size     */           \
-                    "r" (base),  /* read only array address */          \
-                    "i" (scale):  /* constant [1,2,4,8] */              \
-                    "memory" /* clobbered (forces compiler to compute sum ) */ \
-                    )
-
-int count2x64(unsigned char *src, size_t srcSize)
-{
-    unsigned long long remainder = srcSize;
-    if (srcSize < 32) goto handle_remainder;
-
-    unsigned count[16][COUNT_SIZE];
-    memset(count, 0, sizeof(count));
-    
-    remainder = srcSize % 16;
-    srcSize -= remainder;  
-    const unsigned char *endSrc = src + srcSize;
-    unsigned long long next0 = *(unsigned long long *)(src + 0);
-    unsigned long long next1 = *(unsigned long long *)(src + 8);
-
-    //IACA_START;
-
-    while (src != endSrc)
-    {
-        unsigned long long byte0, byte1;
-        unsigned long long data0 = next0;
-        unsigned long long data1 = next1;
-
-        src += 16;
-        next0 = *(unsigned long long *)(src + 0);
-        next1 = *(unsigned long long *)(src + 8);
-
-        ASM_INC_TABLES(data0, data1, byte0, byte1, 0, COUNT_SIZE * 4, count, 4);
-
-        ASM_SHIFT_RIGHT(data0, 16);
-        ASM_SHIFT_RIGHT(data1, 16);
-        ASM_INC_TABLES(data0, data1, byte0, byte1, 4, COUNT_SIZE * 4, count, 4);
-
-        ASM_SHIFT_RIGHT(data0, 16);
-        ASM_SHIFT_RIGHT(data1, 16);
-        ASM_INC_TABLES(data0, data1, byte0, byte1, 8, COUNT_SIZE * 4, count, 4);
-
-        ASM_SHIFT_RIGHT(data0, 16);
-        ASM_SHIFT_RIGHT(data1, 16);
-        ASM_INC_TABLES(data0, data1, byte0, byte1, 12, COUNT_SIZE * 4, count, 4);
-    }
-
-    //IACA_END;
- size_t i;
- handle_remainder:
-    for (i = 0; i < remainder; i++) {
-        unsigned long long byte = src[i];
-        count[0][byte]++;
-    }
-
-    for (i = 0; i < 256; i++) { int idx;
-        for (idx=1; idx < 16; idx++) {
-            count[0][i] += count[idx][i];
-        }
-    }
-
-    return count[0][0];
-}
-  #endif
 
   #ifdef __SSE4_1__
 #include <smmintrin.h>
@@ -474,6 +384,98 @@ int hist_8_256(unsigned char *in, unsigned inlen) {
 }
   #endif
 
+#define NKURTZ
+#include <string.h>
+  #ifdef NKURTZ
+// Not portable "count2x64" from https://github.com/nkurz/countbench
+#define COUNT_SIZE (256 + 8)
+
+#define ASM_SHIFT_RIGHT(reg, bitsToShift)                                \
+    __asm volatile ("shr %1, %0":                                       \
+                    "+r" (reg): /* read and written */                  \
+                    "i" (bitsToShift) /* constant */                    \
+                    )
+
+
+#define ASM_INC_TABLES(src0, src1, byte0, byte1, offset, size, base, scale) \
+    __asm volatile ("movzbl %b2, %k0\n"                /* byte0 = src0 & 0xFF */ \
+                    "movzbl %b3, %k1\n"                /* byte1 = src1 & 0xFF */ \
+                    "incl (%c4+0)*%c5(%6, %0, %c7)\n"  /* count[i+0][byte0]++ */ \
+                    "incl (%c4+1)*%c5(%6, %1, %c7)\n"  /* count[i+1][byte1]++ */ \
+                    "movzbl %h2, %k0\n"                /* byte0 = (src0 & 0xFF00) >> 8 */ \
+                    "movzbl %h3, %k1\n"                /* byte1 = (src1 & 0xFF00) >> 8 */ \
+                    "incl (%c4+2)*%c5(%6, %0, %c7)\n"  /* count[i+2][byte0]++ */ \
+                    "incl (%c4+3)*%c5(%6, %1, %c7)\n": /* count[i+3][byte1]++ */ \
+                    "=&R" (byte0),  /* write only (R == non REX) */     \
+                    "=&R" (byte1):  /* write only (R == non REX) */     \
+                    "Q" (src0),  /* read only (Q == must have rH) */    \
+                    "Q" (src1),  /* read only (Q == must have rH) */    \
+                    "i" (offset), /* constant array offset */           \
+                    "i" (size), /* constant array size     */           \
+                    "r" (base),  /* read only array address */          \
+                    "i" (scale):  /* constant [1,2,4,8] */              \
+                    "memory" /* clobbered (forces compiler to compute sum ) */ \
+                    )
+
+int count2x64(unsigned char *src, size_t srcSize)
+{
+    unsigned long long remainder = srcSize;
+    if (srcSize < 32) goto handle_remainder;
+
+    unsigned count[16][COUNT_SIZE];
+    memset(count, 0, sizeof(count));
+    
+    remainder = srcSize % 16;
+    srcSize -= remainder;  
+    const unsigned char *endSrc = src + srcSize;
+    unsigned long long next0 = *(unsigned long long *)(src + 0);
+    unsigned long long next1 = *(unsigned long long *)(src + 8);
+
+    //IACA_START;
+
+    while (src != endSrc)
+    {
+        unsigned long long byte0, byte1;
+        unsigned long long data0 = next0;
+        unsigned long long data1 = next1;
+
+        src += 16;
+        next0 = *(unsigned long long *)(src + 0);
+        next1 = *(unsigned long long *)(src + 8);
+
+        ASM_INC_TABLES(data0, data1, byte0, byte1, 0, COUNT_SIZE * 4, count, 4);
+
+        ASM_SHIFT_RIGHT(data0, 16);
+        ASM_SHIFT_RIGHT(data1, 16);
+        ASM_INC_TABLES(data0, data1, byte0, byte1, 4, COUNT_SIZE * 4, count, 4);
+
+        ASM_SHIFT_RIGHT(data0, 16);
+        ASM_SHIFT_RIGHT(data1, 16);
+        ASM_INC_TABLES(data0, data1, byte0, byte1, 8, COUNT_SIZE * 4, count, 4);
+
+        ASM_SHIFT_RIGHT(data0, 16);
+        ASM_SHIFT_RIGHT(data1, 16);
+        ASM_INC_TABLES(data0, data1, byte0, byte1, 12, COUNT_SIZE * 4, count, 4);
+    }
+
+    //IACA_END;
+ size_t i;
+ handle_remainder:
+    for (i = 0; i < remainder; i++) {
+        unsigned long long byte = src[i];
+        count[0][byte]++;
+    }
+
+    for (i = 0; i < 256; i++) { int idx;
+        for (idx=1; idx < 16; idx++) {
+            count[0][i] += count[idx][i];
+        }
+    }
+
+    return count[0][0];
+}
+  #endif
+
 //----------------------------------------------------------------------------------------------------------------------------
 typedef unsigned long long tm_t;
 static tm_t tmtime(void);
@@ -506,7 +508,7 @@ static tm_t tmtime(void) {
   return (tm_t)tm.tv_sec*1000000ull + tm.tv_usec;
 }
 
-static tm_t tminit() {                                  tm_t t0=tmtime(),ts; while((ts = tmtime())==t0); return ts; }
+static tm_t tminit() {                                  tm_t t0=tmtime(),ts; while((ts = tmtime())==t0) {}; return ts; }
   #endif
 
 //----------------------------------------------------------------------------------------------------------------------------
@@ -555,7 +557,7 @@ int main(int argc, char *argv[]) { int i; unsigned char *in;int n,reps=GB; tm_t 
   { 
     int r,k,it;
     tm_t t0,tc,c0,cc;
-    process(hist_4_32, in,n);
+    process(hist_4_32, in, n);
     TMBEG process(hist_8_32, in,n);	TMEND;	TMPRINT("hist_8_32");
     TMBEG process(hist_4_32, in,n);	TMEND;	TMPRINT("hist_4_32");
 
