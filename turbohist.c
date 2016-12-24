@@ -1,546 +1,157 @@
-// compile w. cc -O3 -march=native turbohist.c -o turbohist
-// tested w. Linux: gcc & clang, Windows: mingw-w64
-// homepage: http://sites.google.com/site/powturbo/ 
+/**
+Copyright (c) 2013-2017, Powturbo
+    - homepage : https://sites.google.com/site/powturbo/
+    - github   : https://github.com/powturbo
+    - twitter  : https://twitter.com/powturbo
+    - email    : powturbo [_AT_] gmail [_DOT_] com
+All rights reserved.
 
-//#define RET { unsigned a=0, i; for(i = 0; i < 256; i++) a+=i*c0[i]; return a;}  	// CheckSum
-#define RET return c0[0]  								// benchmark
+Redistribution and use in source and binary forms, with or without
+modification, are permitted provided that the following conditions are
+met:
 
-#define CHKSIZE (1<<30) // (56*1024) //
-  #if 0 //CHKSIZE <= (1<<16)
-typedef unsigned short bin_t;
-#define PAD8 0
-  #else
-typedef unsigned       bin_t;
-#define PAD8 8  // +8 to avoid repeated call into the same cache line pool (cache associativity). by Nathan Kurz : https://github.com/powturbo/turbohist/issues/2
-  #endif
+1. Redistributions of source code must retain the above copyright
+   notice, this list of conditions and the following disclaimer.
 
-int hist_1_8(unsigned char *in, unsigned inlen) { 
-  bin_t c0[256] = {0};
+2. Redistributions in binary form must reproduce the above copyright
+   notice, this list of conditions and the following disclaimer in the
+   documentation and/or other materials provided with the distribution.
 
-  unsigned char *ip;
-  for(ip=in; ip != in+inlen;)
-    c0[*ip++]++;
-  RET;
-}
+THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS
+IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED
+TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A
+PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT
+HOLDER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL,
+SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED
+TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR
+PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF
+LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING
+NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
+SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+**/
 
-int hist_4_8(unsigned char *in, unsigned inlen) { 
-  bin_t c0[256]={0},c1[256]={0},c2[256]={0},c3[256]={0}; 
-
-  unsigned char *ip; 
-  for(ip = in; ip != in + (inlen&~(4-1)); ) 
-    c0[*ip++]++, c1[*ip++]++, c2[*ip++]++, c3[*ip++]++; 
-  while(ip != in+inlen)
-    c0[*ip++]++; 
-
-  int i;for(i = 0; i != 256; i++) c0[i] += c1[i]+c2[i]+c3[i];
-  RET;
-}
-
-int hist_8_8(unsigned char *in, unsigned inlen) { 
-  bin_t c0[256+PAD8]={0},c1[256+PAD8]={0},c2[256+PAD8]={0},c3[256+PAD8]={0},c4[256+PAD8]={0},c5[256+PAD8]={0},c6[256+PAD8]={0},c7[256+PAD8]={0}; 
-
-  unsigned char *ip; 
-  for(ip=in; ip != in + (inlen&~(8-1)); ) 
-    c0[*ip++]++, c1[*ip++]++, c2[*ip++]++, c3[*ip++]++, c4[*ip++]++, c5[*ip++]++, c6[*ip++]++, c7[*ip++]++; 
-  while(ip != in+inlen)
-    c0[*ip++]++; 
-
-  int i;for(i = 0; i < 256; i++) c0[i] += c1[i]+c2[i]+c3[i]+c4[i]+c5[i]+c6[i]+c7[i];
-  RET;
-}
-
-int hist_4_32(unsigned char *in, unsigned inlen) { // Optimized for x86
-  bin_t c0[256]={0},c1[256]={0},c2[256]={0},c3[256]={0}; 
-
-  unsigned char *ip;
-  unsigned 		         		  cp = *(unsigned *)in;
-  for(ip = in; ip != in+(inlen&~(16-1));) {
-    unsigned 	c = cp,	d = *(unsigned *)(ip+=4); cp = *(unsigned *)(ip+=4);    
-    c0[(unsigned char) c    ]++;
-    c1[(unsigned char) d    ]++;
-    c2[(unsigned char)(c>>8)]++; c>>=16;
-    c3[(unsigned char)(d>>8)]++; d>>=16; 
-    c0[(unsigned char) c    ]++;
-    c1[(unsigned char) d    ]++;
-    c2[ 	       c>>8 ]++;
-    c3[ 	       d>>8 ]++; 
-    
-    		c = cp;	d = *(unsigned *)(ip+=4); cp = *(unsigned *)(ip+=4);    
-    c0[(unsigned char) c    ]++;
-    c1[(unsigned char) d    ]++;
-    c2[(unsigned char)(c>>8)]++; c>>=16;
-    c3[(unsigned char)(d>>8)]++; d>>=16;
-    c0[(unsigned char) c    ]++;
-    c1[(unsigned char) d    ]++;
-    c2[ 	       c>>8 ]++;
-    c3[ 	       d>>8 ]++; 
-  }
-  while(ip != in+inlen) c0[*ip++]++; 
-
-  int i;
-  for(i = 0; i < 256; i++) 
-    c0[i] += c1[i]+c2[i]+c3[i];
-  RET;
-}
-
-int hist_8_32(unsigned char *in, unsigned inlen) { // Optimized for x86
-  unsigned char *ip;
-  unsigned c, d, cp = *(unsigned *)in;
-
-  bin_t c0[256+PAD8]={0},c1[256+PAD8]={0},c2[256+PAD8]={0},c3[256+PAD8]={0},c4[256+PAD8]={0},c5[256+PAD8]={0},c6[256+PAD8]={0},c7[256+PAD8]={0}; 
-
-  for(ip = in; ip != in+(inlen&~(16-1));) {  
-     		c = cp,	d = *(unsigned *)(ip+=4); cp = *(unsigned *)(ip+=4);    
-    c0[(unsigned char) c    ]++;
-    c1[(unsigned char) d    ]++;
-    c2[(unsigned char)(c>>8)]++; c>>=16;
-    c3[(unsigned char)(d>>8)]++; d>>=16; 
-    c4[(unsigned char) c    ]++;
-    c5[(unsigned char) d    ]++;
-    c6[ 	           c>>8 ]++;
-    c7[ 	           d>>8 ]++; 
-    
-    		c = cp;	d = *(unsigned *)(ip+=4); cp = *(unsigned *)(ip+=4);    
-    c0[(unsigned char) c    ]++;
-    c1[(unsigned char) d    ]++;
-    c2[(unsigned char)(c>>8)]++; c>>=16;
-    c3[(unsigned char)(d>>8)]++; d>>=16;
-    c4[(unsigned char) c    ]++;
-    c5[(unsigned char) d    ]++;
-    c6[ 	           c>>8 ]++;
-    c7[ 	           d>>8 ]++; 
-  }
-  while(ip != in+inlen) c0[*ip++]++; 
-
-  int i;
-  for(i = 0; i < 256; i++) 
-    c0[i] += c1[i]+c2[i]+c3[i]+c4[i]+c5[i]+c6[i]+c7[i];
-  RET;
-}
-
-int hist_4_64(unsigned char *in, unsigned inlen) { // Optimized for x86
-  bin_t c0[256+PAD8]={0},c1[256+PAD8]={0},c2[256+PAD8]={0},c3[256+PAD8]={0}; 
-
-  unsigned char *ip;
-  unsigned long long 		    cp = *(unsigned long long*)in;  
-  for(ip = in; ip != in+(inlen&~(16-1));) {  
-    unsigned 	c = cp,	d = cp>>32; cp = *(unsigned long long*)(ip+=8);    
-    c0[(unsigned char) c    ]++;
-    c1[(unsigned char) d    ]++;
-    c2[(unsigned char)(c>>8)]++; c>>=16;
-    c3[(unsigned char)(d>>8)]++; d>>=16; 
-    c0[(unsigned char) c    ]++;
-    c1[(unsigned char) d    ]++;
-    c2[ 	       c>>8 ]++;
-    c3[ 	       d>>8 ]++; 
-    
-     		c = cp,	d = cp>>32; cp = *(unsigned long long*)(ip+=8);    
-    c0[(unsigned char) c    ]++;
-    c1[(unsigned char) d    ]++;
-    c2[(unsigned char)(c>>8)]++; c>>=16;
-    c3[(unsigned char)(d>>8)]++; d>>=16;
-    c0[(unsigned char) c    ]++;
-    c1[(unsigned char) d    ]++;
-    c2[ 	       c>>8 ]++;
-    c3[ 	       d>>8 ]++; 
-  }
-  while(ip < in+inlen) c0[*ip++]++; 
-
-  int i;
-  for(i = 0; i < 256; i++) 
-    c0[i] += c1[i]+c2[i]+c3[i];
-  RET;
-}
-
-int hist_8_64(unsigned char *in, unsigned inlen) { // Optimized for x86
-  bin_t c0[256+PAD8]={0},c1[256+PAD8]={0},c2[256+PAD8]={0},c3[256+PAD8]={0},c4[256+PAD8]={0},c5[256+PAD8]={0},c6[256+PAD8]={0},c7[256+PAD8]={0}; 
-
-  unsigned char *ip;
-  unsigned long long 		    cp = *(unsigned long long*)in;  
-  for(ip = in; ip != in+(inlen&~(16-1));) {  
-    unsigned 	c = cp,	d = cp>>32; cp = *(unsigned long long*)(ip+=8);    
-    c0[(unsigned char) c    ]++;
-    c1[(unsigned char) d    ]++;
-    c2[(unsigned char)(c>>8)]++; c>>=16;
-    c3[(unsigned char)(d>>8)]++; d>>=16; 
-    c4[(unsigned char) c    ]++;
-    c5[(unsigned char) d    ]++;
-    c6[ 	       c>>8 ]++;
-    c7[ 	       d>>8 ]++; 
-    
-     		c = cp,	d = cp>>32; cp = *(unsigned long long*)(ip+=8);    
-    c0[(unsigned char) c    ]++;
-    c1[(unsigned char) d    ]++;
-    c2[(unsigned char)(c>>8)]++; c>>=16;
-    c3[(unsigned char)(d>>8)]++; d>>=16;
-    c4[(unsigned char) c    ]++;
-    c5[(unsigned char) d    ]++;
-    c6[ 	       c>>8 ]++;
-    c7[ 	       d>>8 ]++; 
-  }
-  while(ip < in+inlen) c0[*ip++]++; 
-
-  int i;
-  for(i = 0; i < 256; i++) 
-    c0[i] += c1[i]+c2[i]+c3[i]+c4[i]+c5[i]+c6[i]+c7[i];
-  RET;
-}
-
-  #ifdef __SSE4_1__
-#include <smmintrin.h>
-int hist_4_128(unsigned char *in, unsigned inlen) { 
-  bin_t c0[256+PAD8]={0},c1[256+PAD8]={0},c2[256+PAD8]={0},c3[256+PAD8]={0}; 
-
-  unsigned char *ip;
-  __m128i cpv = _mm_loadu_si128((__m128i*)in);
-  for(ip = in; ip != in+(inlen&~(32-1)); ) {
-    __m128i cv=cpv, dv = _mm_loadu_si128((__m128i*)(ip+=16)); cpv = _mm_loadu_si128((__m128i*)(ip+=16)); 
-    c0[_mm_extract_epi8(cv,  0)]++;
-    c1[_mm_extract_epi8(dv,  0)]++;
-    c2[_mm_extract_epi8(cv,  1)]++;
-    c3[_mm_extract_epi8(dv,  1)]++;
-    c0[_mm_extract_epi8(cv,  2)]++;
-    c1[_mm_extract_epi8(dv,  2)]++;
-    c2[_mm_extract_epi8(cv,  3)]++;
-    c3[_mm_extract_epi8(dv,  3)]++;
-    c0[_mm_extract_epi8(cv,  4)]++;
-    c1[_mm_extract_epi8(dv,  4)]++;
-    c2[_mm_extract_epi8(cv,  5)]++;
-    c3[_mm_extract_epi8(dv,  5)]++;
-    c0[_mm_extract_epi8(cv,  6)]++;
-    c1[_mm_extract_epi8(dv,  6)]++;
-    c2[_mm_extract_epi8(cv,  7)]++;
-    c3[_mm_extract_epi8(dv,  7)]++;
-    c0[_mm_extract_epi8(cv,  8)]++;
-    c1[_mm_extract_epi8(dv,  8)]++;
-    c2[_mm_extract_epi8(cv,  9)]++;
-    c3[_mm_extract_epi8(dv,  9)]++;
-    c0[_mm_extract_epi8(cv, 10)]++;
-    c1[_mm_extract_epi8(dv, 10)]++;
-    c2[_mm_extract_epi8(cv, 11)]++;
-    c3[_mm_extract_epi8(dv, 11)]++;
-    c0[_mm_extract_epi8(cv, 12)]++;
-    c1[_mm_extract_epi8(dv, 12)]++;
-    c2[_mm_extract_epi8(cv, 13)]++;
-    c3[_mm_extract_epi8(dv, 13)]++;
-    c0[_mm_extract_epi8(cv, 14)]++;
-    c1[_mm_extract_epi8(dv, 14)]++;
-    c2[_mm_extract_epi8(cv, 15)]++;
-    c3[_mm_extract_epi8(dv, 15)]++;
-  }
-  while(ip < in+inlen) c0[*ip++]++; 
-
-  int i;
-  for(i = 0; i < 256; i++) 
-    c0[i] += c1[i]+c2[i]+c3[i];
-  RET;
-}
-
-int hist_8_128(unsigned char *in, unsigned inlen) { 
-  bin_t c0[256+PAD8]={0},c1[256+PAD8]={0},c2[256+PAD8]={0},c3[256+PAD8]={0},c4[256+PAD8]={0},c5[256+PAD8]={0},c6[256+PAD8]={0},c7[256+PAD8]={0}; 
-
-  unsigned char *ip;
-  __m128i cpv = _mm_loadu_si128((__m128i*)in);
-  for(ip = in; ip != in+(inlen&~(32-1)); ) {
-    __m128i cv=cpv, dv = _mm_loadu_si128((__m128i*)(ip+=16)); cpv = _mm_loadu_si128((__m128i*)(ip+=16)); 
-    c0[_mm_extract_epi8(cv,  0)]++;
-    c1[_mm_extract_epi8(dv,  0)]++;
-    c2[_mm_extract_epi8(cv,  1)]++;
-    c3[_mm_extract_epi8(dv,  1)]++;
-    c4[_mm_extract_epi8(cv,  2)]++;
-    c5[_mm_extract_epi8(dv,  2)]++;
-    c6[_mm_extract_epi8(cv,  3)]++;
-    c7[_mm_extract_epi8(dv,  3)]++;
-    c0[_mm_extract_epi8(cv,  4)]++;
-    c1[_mm_extract_epi8(dv,  4)]++;
-    c2[_mm_extract_epi8(cv,  5)]++;
-    c3[_mm_extract_epi8(dv,  5)]++;
-    c4[_mm_extract_epi8(cv,  6)]++;
-    c5[_mm_extract_epi8(dv,  6)]++;
-    c6[_mm_extract_epi8(cv,  7)]++;
-    c7[_mm_extract_epi8(dv,  7)]++;
-    c0[_mm_extract_epi8(cv,  8)]++;
-    c1[_mm_extract_epi8(dv,  8)]++;
-    c2[_mm_extract_epi8(cv,  9)]++;
-    c3[_mm_extract_epi8(dv,  9)]++;
-    c4[_mm_extract_epi8(cv, 10)]++;
-    c5[_mm_extract_epi8(dv, 10)]++;
-    c6[_mm_extract_epi8(cv, 11)]++;
-    c7[_mm_extract_epi8(dv, 11)]++;
-    c0[_mm_extract_epi8(cv, 12)]++;
-    c1[_mm_extract_epi8(dv, 12)]++;
-    c2[_mm_extract_epi8(cv, 13)]++;
-    c3[_mm_extract_epi8(dv, 13)]++;
-    c4[_mm_extract_epi8(cv, 14)]++;
-    c5[_mm_extract_epi8(dv, 14)]++;
-    c6[_mm_extract_epi8(cv, 15)]++;
-    c7[_mm_extract_epi8(dv, 15)]++;
-  }
-  while(ip < in+inlen) c0[*ip++]++; 
-
-  int i;
-  for(i = 0; i < 256; i++) 
-    c0[i] += c1[i]+c2[i]+c3[i]+c4[i]+c5[i]+c6[i]+c7[i];
-  RET;
-}
-  #endif
-
-  #ifdef __AVX2__
-#include <immintrin.h>
-int hist_4_256(unsigned char *in, unsigned inlen) { 
-  bin_t c0[256+PAD8]={0},c1[256+PAD8]={0},c2[256+PAD8]={0},c3[256+PAD8]={0}; 
-
-  unsigned char *ip;
-  __m256i cpv = _mm256_loadu_si256((__m256i*)in);
-  for(ip = in; ip != in+(inlen&~(32-1)); ) {
-    __m256i cv=cpv; cpv = _mm256_loadu_si256((__m256i*)(ip+=32)); 
-    c0[_mm256_extract_epi8(cv,  0)]++;
-    c1[_mm256_extract_epi8(cv,  1)]++;
-    c2[_mm256_extract_epi8(cv,  2)]++;
-    c3[_mm256_extract_epi8(cv,  3)]++;
-    c0[_mm256_extract_epi8(cv,  4)]++;
-    c1[_mm256_extract_epi8(cv,  5)]++;
-    c2[_mm256_extract_epi8(cv,  6)]++;
-    c3[_mm256_extract_epi8(cv,  7)]++;
-    c0[_mm256_extract_epi8(cv,  8)]++;
-    c1[_mm256_extract_epi8(cv,  9)]++;
-    c2[_mm256_extract_epi8(cv, 10)]++;
-    c3[_mm256_extract_epi8(cv, 11)]++;
-    c0[_mm256_extract_epi8(cv, 12)]++;
-    c1[_mm256_extract_epi8(cv, 13)]++;
-    c2[_mm256_extract_epi8(cv, 14)]++;
-    c3[_mm256_extract_epi8(cv, 15)]++;
-    c0[_mm256_extract_epi8(cv, 16)]++;
-    c1[_mm256_extract_epi8(cv, 17)]++;
-    c2[_mm256_extract_epi8(cv, 18)]++;
-    c3[_mm256_extract_epi8(cv, 19)]++;
-    c0[_mm256_extract_epi8(cv, 20)]++;
-    c1[_mm256_extract_epi8(cv, 21)]++;
-    c2[_mm256_extract_epi8(cv, 22)]++;
-    c3[_mm256_extract_epi8(cv, 23)]++;
-    c0[_mm256_extract_epi8(cv, 24)]++;
-    c1[_mm256_extract_epi8(cv, 25)]++;
-    c2[_mm256_extract_epi8(cv, 26)]++;
-    c3[_mm256_extract_epi8(cv, 27)]++;
-    c0[_mm256_extract_epi8(cv, 28)]++;
-    c1[_mm256_extract_epi8(cv, 29)]++;
-    c2[_mm256_extract_epi8(cv, 30)]++;
-    c3[_mm256_extract_epi8(cv, 31)]++;
-  }
-  while(ip < in+inlen) c0[*ip++]++; 
-
-  int i;
-  for(i = 0; i < 256; i++) 
-    c0[i] += c1[i]+c2[i]+c3[i];
-  RET;
-}
-
-int hist_8_256(unsigned char *in, unsigned inlen) { 
-  bin_t c0[256+PAD8]={0},c1[256+PAD8]={0},c2[256+PAD8]={0},c3[256+PAD8]={0},c4[256+PAD8]={0},c5[256+PAD8]={0},c6[256+PAD8]={0},c7[256+PAD8]={0}; 
-
-  unsigned char *ip;
-  __m256i cpv = _mm256_loadu_si256((__m256i*)in);
-  for(ip = in; ip != in+(inlen&~(32-1)); ) {
-    __m256i cv=cpv; cpv = _mm256_loadu_si256((__m256i*)(ip+=32)); 
-    c0[_mm256_extract_epi8(cv,  0)]++;
-    c1[_mm256_extract_epi8(cv,  1)]++;
-    c2[_mm256_extract_epi8(cv,  2)]++;
-    c3[_mm256_extract_epi8(cv,  3)]++;
-    c4[_mm256_extract_epi8(cv,  4)]++;
-    c5[_mm256_extract_epi8(cv,  5)]++;
-    c6[_mm256_extract_epi8(cv,  6)]++;
-    c7[_mm256_extract_epi8(cv,  7)]++;
-    c0[_mm256_extract_epi8(cv,  8)]++;
-    c1[_mm256_extract_epi8(cv,  9)]++;
-    c2[_mm256_extract_epi8(cv, 10)]++;
-    c3[_mm256_extract_epi8(cv, 11)]++;
-    c4[_mm256_extract_epi8(cv, 12)]++;
-    c5[_mm256_extract_epi8(cv, 13)]++;
-    c6[_mm256_extract_epi8(cv, 14)]++;
-    c7[_mm256_extract_epi8(cv, 15)]++;
-    c0[_mm256_extract_epi8(cv, 16)]++;
-    c1[_mm256_extract_epi8(cv, 17)]++;
-    c2[_mm256_extract_epi8(cv, 18)]++;
-    c3[_mm256_extract_epi8(cv, 19)]++;
-    c4[_mm256_extract_epi8(cv, 20)]++;
-    c5[_mm256_extract_epi8(cv, 21)]++;
-    c6[_mm256_extract_epi8(cv, 22)]++;
-    c7[_mm256_extract_epi8(cv, 23)]++;
-    c0[_mm256_extract_epi8(cv, 24)]++;
-    c1[_mm256_extract_epi8(cv, 25)]++;
-    c2[_mm256_extract_epi8(cv, 26)]++;
-    c3[_mm256_extract_epi8(cv, 27)]++;
-    c4[_mm256_extract_epi8(cv, 28)]++;
-    c5[_mm256_extract_epi8(cv, 29)]++;
-    c6[_mm256_extract_epi8(cv, 30)]++;
-    c7[_mm256_extract_epi8(cv, 31)]++;
-  }
-  while(ip < in+inlen) c0[*ip++]++; 
-
-  int i;
-  for(i = 0; i < 256; i++) 
-    c0[i] += c1[i]+c2[i]+c3[i]+c4[i]+c5[i]+c6[i]+c7[i];
-  RET;
-}
-  #endif
-
-#define NKURTZ
-#include <string.h>
-  #ifdef NKURTZ
-// Not portable "count2x64" from https://github.com/nkurz/countbench
-#define COUNT_SIZE (256 + 8)
-
-#define ASM_SHIFT_RIGHT(reg, bitsToShift)                                \
-    __asm volatile ("shr %1, %0":                                       \
-                    "+r" (reg): /* read and written */                  \
-                    "i" (bitsToShift) /* constant */                    \
-                    )
-
-
-#define ASM_INC_TABLES(src0, src1, byte0, byte1, offset, size, base, scale) \
-    __asm volatile ("movzbl %b2, %k0\n"                /* byte0 = src0 & 0xFF */ \
-                    "movzbl %b3, %k1\n"                /* byte1 = src1 & 0xFF */ \
-                    "incl (%c4+0)*%c5(%6, %0, %c7)\n"  /* count[i+0][byte0]++ */ \
-                    "incl (%c4+1)*%c5(%6, %1, %c7)\n"  /* count[i+1][byte1]++ */ \
-                    "movzbl %h2, %k0\n"                /* byte0 = (src0 & 0xFF00) >> 8 */ \
-                    "movzbl %h3, %k1\n"                /* byte1 = (src1 & 0xFF00) >> 8 */ \
-                    "incl (%c4+2)*%c5(%6, %0, %c7)\n"  /* count[i+2][byte0]++ */ \
-                    "incl (%c4+3)*%c5(%6, %1, %c7)\n": /* count[i+3][byte1]++ */ \
-                    "=&R" (byte0),  /* write only (R == non REX) */     \
-                    "=&R" (byte1):  /* write only (R == non REX) */     \
-                    "Q" (src0),  /* read only (Q == must have rH) */    \
-                    "Q" (src1),  /* read only (Q == must have rH) */    \
-                    "i" (offset), /* constant array offset */           \
-                    "i" (size), /* constant array size     */           \
-                    "r" (base),  /* read only array address */          \
-                    "i" (scale):  /* constant [1,2,4,8] */              \
-                    "memory" /* clobbered (forces compiler to compute sum ) */ \
-                    )
-
-int count2x64(unsigned char *src, size_t srcSize)
-{
-    unsigned long long remainder = srcSize;
-    if (srcSize < 32) goto handle_remainder;
-
-    unsigned count[16][COUNT_SIZE];
-    memset(count, 0, sizeof(count));
-    
-    remainder = srcSize % 16;
-    srcSize -= remainder;  
-    const unsigned char *endSrc = src + srcSize;
-    unsigned long long next0 = *(unsigned long long *)(src + 0);
-    unsigned long long next1 = *(unsigned long long *)(src + 8);
-
-    //IACA_START;
-
-    while (src != endSrc)
-    {
-        unsigned long long byte0, byte1;
-        unsigned long long data0 = next0;
-        unsigned long long data1 = next1;
-
-        src += 16;
-        next0 = *(unsigned long long *)(src + 0);
-        next1 = *(unsigned long long *)(src + 8);
-
-        ASM_INC_TABLES(data0, data1, byte0, byte1, 0, COUNT_SIZE * 4, count, 4);
-
-        ASM_SHIFT_RIGHT(data0, 16);
-        ASM_SHIFT_RIGHT(data1, 16);
-        ASM_INC_TABLES(data0, data1, byte0, byte1, 4, COUNT_SIZE * 4, count, 4);
-
-        ASM_SHIFT_RIGHT(data0, 16);
-        ASM_SHIFT_RIGHT(data1, 16);
-        ASM_INC_TABLES(data0, data1, byte0, byte1, 8, COUNT_SIZE * 4, count, 4);
-
-        ASM_SHIFT_RIGHT(data0, 16);
-        ASM_SHIFT_RIGHT(data1, 16);
-        ASM_INC_TABLES(data0, data1, byte0, byte1, 12, COUNT_SIZE * 4, count, 4);
-    }
-
-    //IACA_END;
- size_t i;
- handle_remainder:
-    for (i = 0; i < remainder; i++) {
-        unsigned long long byte = src[i];
-        count[0][byte]++;
-    }
-
-    for (i = 0; i < 256; i++) { int idx;
-        for (idx=1; idx < 16; idx++) {
-            count[0][i] += count[idx][i];
-        }
-    }
-
-    return count[0][0];
-}
-  #endif
-
-//----------------------------------------------------------------------------------------------------------------------------
-typedef unsigned long long tm_t;
-static tm_t tmtime(void);
-
-  #ifdef _MSC_VER
-#include <intrin.h>
-  #else
-#include <x86intrin.h>
-  #endif
-
-  #ifdef _WIN32
-#include <windows.h>
-#define TM_T 1
-
-static tm_t tmtime(void) {
-  LARGE_INTEGER tm;
-  QueryPerformanceCounter(&tm);
-  return (tm_t)(tm.QuadPart/tps.QuadPart);
-}
-
-LARGE_INTEGER tps;
-static tm_t tminit() { QueryPerformanceFrequency(&tps); tm_t t0=tmtime(),ts; while((ts = tmtime())==t0); return ts; } 
-  #else
-#include <sys/time.h>
-#include <sys/resource.h>
-#define TM_T 1000000.0
-static tm_t tmtime(void) {
-  struct timeval tm;
-  gettimeofday(&tm, NULL);
-  return (tm_t)tm.tv_sec*1000000ull + tm.tv_usec;
-}
-
-static tm_t tminit() {                                  tm_t t0=tmtime(),ts; while((ts = tmtime())==t0) {}; return ts; }
-  #endif
-
-//----------------------------------------------------------------------------------------------------------------------------
 #include <string.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <malloc.h>
-
-#define MBS 1000000.0 //MiBS 1048576.0
-
-#define TMPRINT(__x) { printf("%7.2f MB/s\t%3.1f clocks/symbol\tc=%d it=%d\t%s\n", (double)(tc>=0.000001?(((double)n*it/MBS)/(((double)tc/1)/TM_T)):0.0), (double)cc/((double)n*it), r, it, __x); }
-#define TMBEG for(t0=tminit(),c0=__rdtsc(),it=0;it<reps;) { r = 0;
-#define TMEND it++; if((tc = tmtime() - t0) > tx) break; } cc=__rdtsc()-c0
-
-  #if CHKSIZE <= (1<<16)
-#define process(__fct, __in, __inlen) { unsigned char *ip = __in, *in_=__in+__inlen; int iplen;\
-  for(; ip < in_; ip += iplen) { iplen = in_ - ip; if(iplen > CHKSIZE) iplen = CHKSIZE;\
-    r += __fct(ip, iplen); \
-  }\
-}
-  #else
-#define process(__fct, __in, __inlen) r = __fct(__in, __inlen)
+  #ifdef _MSC_VER
+#include "vs/getopt.h"
+  #else 
+#include <getopt.h>
+#include <unistd.h>   
   #endif
+
+//--------------------------------------- Time ------------------------------------------------------------------------
+#include <time.h>
+typedef unsigned long long tm_t;
+#define TM_T 1000000.0
+  #ifdef _WIN32
+#include <windows.h>
+static LARGE_INTEGER tps;
+static tm_t tmtime(void) { LARGE_INTEGER tm; QueryPerformanceCounter(&tm); return (tm_t)((double)tm.QuadPart*1000000.0/tps.QuadPart); }
+static tm_t tminit() { QueryPerformanceFrequency(&tps); tm_t t0=tmtime(),ts; while((ts = tmtime())==t0); return ts; } 
+  #else
+static   tm_t tmtime(void)    { struct timespec tm; clock_gettime(CLOCK_MONOTONIC, &tm); return (tm_t)tm.tv_sec*1000000ull + tm.tv_nsec/1000; }
+static   tm_t tminit()        { tm_t t0=tmtime(),ts; while((ts = tmtime())==t0); return ts; }
+  #endif 
+//---------------------------------------- bench --------------------------------------------------------------
+#define MBS 		  1000000.0
+#define TMBS(__l,__t) ((__t)>=0.000001?((double)(__l)/MBS)/((__t)/TM_T):0.0)
+#define TM_TX         TM_T 
+ 
+#define TMDEF unsigned tm_r,tm_R,tm_c; tm_t _t0,_tc,_ts; double _tmbs=0.0;
+#define TMSLEEP do { tm_T = tmtime(); if(!tm_0) tm_0 = tm_T; else if(tm_T - tm_0 > tm_TX) { printf("S \b\b\b");fflush(stdout); sleep(tm_slp); tm_0=tmtime();} } while(0)
+#define TMBEG(_c_, _tm_reps_, _tm_Reps_) \
+  for(tm_c=_c_,tm_tm = (1ull<<63),tm_rm=1,tm_R=0,_ts=tmtime(); tm_R < _tm_Reps_; tm_R++) { printf("%8.2f %.2d_%d\b\b\b\b\b\b\b\b\b\b\b\b\b",_tmbs,tm_R+1,tm_c);fflush(stdout);\
+    for(_t0 = tminit(), tm_r=0; tm_r < _tm_reps_;) {
+ 
+#define TMEND(_len_) tm_T = tmtime(); tm_r++; if((_tc = (tm_T - _t0)) > tm_tx) break; }\
+  if(_tc/(double)tm_r < (double)tm_tm/(double)tm_rm) { tm_tm = _tc; tm_rm=tm_r; tm_c++; double _d = (double)tm_tm/(double)tm_rm; _tmbs=TMBS(_len_, _d); } else if(_tc/tm_tm>1.2) TMSLEEP; if(tm_T-_ts > tm_TX) break;\
+  if((tm_R & 7)==7) { sleep(tm_slp); _ts=tmtime(); } }
+
+#define TMVARS static unsigned tm_repc = 1<<30, tm_Repc = 4, tm_repd = 1<<30, tm_Repd = 4, tm_rm, tm_slp = 25;\
+               static tm_t     tm_tm, tm_tx = TM_TX, tm_TX = 30*TM_TX, tm_0, tm_T, tm_RepkT=24*3600*TM_TX;
+//--------------------------------------------------------------------------------------------------------------
+TMVARS; 
+
+//#define COUNTBENCH  // https://github.com/nkurz/countbench 
+
+#include "turbohist_.c"
 
 #define GB (1<<30)
 
-int main(int argc, char *argv[]) { int i; unsigned char *in;int n,reps=GB; tm_t tx=1*1000000; 
-  { char *inname = argv[1];  
+typedef unsigned (*FUNC)(unsigned char *in, unsigned n);
+struct cod { FUNC func; char *s; };
 
-    FILE *fi = fopen(inname,  "rb"); 
-    if(!fi ) perror(inname), exit(1);  
-    printf("'%s'\n", inname);
+struct cod cods[] = { 
+  { hist_8_32,  "hist_8_32"  }, 
+  { hist_4_32,  "hist_4_32"  }, 
+    #ifdef __SSE4_1__
+  { hist_8_128, "hist_8_128" }, 
+  { hist_4_128, "hist_4_128" }, 
+    #endif
+    #ifdef __AVX2__
+  { hist_8_256, "hist_8_256" }, 
+  { hist_4_256, "hist_4_256" }, 
+    #endif
+  { hist_8_64,  "hist_8_64"  }, 
+  { hist_4_64,  "hist_4_64"  }, 
+  { hist_8_8,   "hist_8_8"   }, 
+  { hist_4_8,   "hist_4_8"   }, 
+  { hist_1_8,   "hist_1_8"   }, 
+    #ifdef COUNTBENCH
+  { count2x64,  "count2x64"  }, 
+  { count2x64c, "count2x64c" },
+    #endif
+};
+
+void usage(char *pgm) {
+  fprintf(stderr, "\nTurboHist Copyright (c) 2013-2017 Powturbo %s\n", __DATE__);
+  fprintf(stderr, "Usage: %s [options] [file]\n", pgm);
+  fprintf(stderr, "Benchmark:\n");
+  fprintf(stderr, " -i#      # = Minimum  iterations per run (default=auto)\n");
+  fprintf(stderr, " -I#      # = Number of runs (default=4)\n");
+  fprintf(stderr, "Check:\n");
+  fprintf(stderr, " -s       print checksum\n");
+  fprintf(stderr, "Ex. ./turbohist file -I15\n");
+  exit(0);
+} 
+
+int main(int argc, char *argv[]) { unsigned char *in;int n,fno;
+  char *finame = argv[1];  
+
+  int c, digit_optind = 0;
+  for(;;) {
+    int this_option_optind = optind ? optind : 1;
+    int option_index = 0;
+    static struct option long_options[] = {
+      { "help", 	0, 0, 'h'},
+      { 0, 		    0, 0, 0}
+    };
+    if((c = getopt_long(argc, argv, "hsi:I:", long_options, &option_index)) == -1) break;
+    switch(c) { 
+      case 0:
+        printf("Option %s", long_options[option_index].name);
+        if(optarg) printf (" with arg %s", optarg);  printf ("\n");
+        break;
+      case 'i': if((tm_repc  = atoi(optarg))<=0) 
+		          tm_repc=tm_Repc=1;         		 break;
+      case 'I': tm_Repc  = atoi(optarg);       		 break;
+      case 's': csum++;       		                 break;
+	  case 'h':
+      default: 
+        usage(argv[0]);
+        exit(0); 
+    }
+  }
+  printf("\nTurboHist Copyright (c) 2013-2017 Powturbo %s\n", __DATE__);
+
+  for(fno = optind; fno < argc; fno++) {
+    finame = argv[fno];
+
+    FILE *fi = fopen(finame,  "rb"); 
+    if(!fi ) perror(finame), exit(1);  
+    printf("'%s'\n", finame);
 
     fseek(fi, 0, SEEK_END); 
     long long flen = ftell(fi); 
@@ -548,38 +159,30 @@ int main(int argc, char *argv[]) { int i; unsigned char *in;int n,reps=GB; tm_t 
 
     if(flen > GB) flen = GB;
     n = flen; 
-    if(!(in = (unsigned char*)malloc(n))) { fprintf(stderr, "malloc error\n"); exit(-1); }
+    if(!(in = (unsigned char*)malloc(n))) 
+      printf("malloc error\n"), exit(-1);
     n = fread(in, 1, n, fi);
     fclose(fi);
-    if(n <= 0) exit(0); 
+    if(n <= 0) 
+      exit(0); 
+  
+    int r,i, cr = hist_1_8(in, n); 
+    TMDEF;
+    for(i = 0; i < sizeof(cods)/sizeof(cods[0]); i++) {
+      TMBEG(0, tm_repc, tm_Repc);
+      r = cods[i].func(in, n); 
+      TMEND(n);
+
+      double tc = (double)tm_tm/(double)tm_rm;
+      printf("%8.2f MB/s\t%s", TMBS(n,tc), cods[i].s);
+      if(csum) {
+        printf(" checksum=%d ", r);
+        if(r != cr) { printf("Fatal error in '%s'\n", cods[i].s); exit(-1); }
+      } 
+      printf("\n");
+      fflush(stdout);
+    }  
+    free(in);
   }
-
-  { 
-    int r,k,it;
-    tm_t t0,tc,c0,cc;
-    process(hist_4_32, in, n);
-    TMBEG process(hist_8_32, in,n);	TMEND;	TMPRINT("hist_8_32");
-    TMBEG process(hist_4_32, in,n);	TMEND;	TMPRINT("hist_4_32");
-
-      #ifdef NKURTZ
-    TMBEG process(count2x64, in,n); 	TMEND;	TMPRINT("count2x64 nkurz");
-      #endif 
-
-      #ifdef __SSE4_1__
-    TMBEG process(hist_8_128,in,n);  	TMEND;	TMPRINT("hist_8_128");
-    TMBEG process(hist_4_128,in,n);  	TMEND;	TMPRINT("hist_4_128");
-      #endif
-
-      #ifdef __AVX2__
-    TMBEG process(hist_8_256,in,n);  	TMEND;	TMPRINT("hist_8_256");
-    TMBEG process(hist_4_256,in,n);  	TMEND;	TMPRINT("hist_4_256");
-      #endif
-    TMBEG process(hist_8_64, in,n); 	TMEND;	TMPRINT("hist_8_64");
-    TMBEG process(hist_4_64, in,n); 	TMEND;	TMPRINT("hist_4_64");
-
-    TMBEG process(hist_8_8,  in,n); 	TMEND;	TMPRINT("hist_8_8");
-    TMBEG process(hist_4_8,  in,n); 	TMEND;	TMPRINT("hist_4_8");
-    TMBEG process(hist_1_8,  in,n); 	TMEND;	TMPRINT("hist_1_8");
-  }
-  free(in);
 }
+
