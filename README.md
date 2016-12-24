@@ -5,7 +5,7 @@ TurboHist: Fastest Histogram Construction [![Build Status](https://travis-ci.org
 - 100% C (& C++ compatible) without inline assembly
 - Both 32 and 64 bits supported
 - Portable scalar functions faster than SIMD functions
-- Up to **3 times** faster than naive solution
+- More than **3 times** faster than naive solution
 - :new: more faster, beats even other fast assembler functions
 
 # Benchmark:
