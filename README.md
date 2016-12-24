@@ -18,7 +18,8 @@ TurboHist: Fastest Histogram Construction [![Build Status](https://travis-ci.org
  - Uniform: [enwik9](http://mattmahoney.net/dc/text.html)
  - Skewed: enwik9 bwt generated w. libdivsufsort
  - Accurate benchmarking with command "turbohist file -I15"
- 
+
+
 |Function|Uniform: Time MB/s|Skewed: Time MB/s|
 |**hist_8_32**|**2823**|**2823**|
 |hist_4_32|2817|2679|
