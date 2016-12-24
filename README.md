@@ -28,11 +28,11 @@ TurboHist: Fastest Histogram Construction [![Build Status](https://travis-ci.org
 |hist_8_128|2780|2778|
 |hist_4_128|2781|2661|
 |hist_8_64|2735|2734|
-|hist_4_64|2730.79|2616|
+|hist_4_64|2731|2616|
 |count2x64c|2433|2432|
-|hist_4_8|2173.40|2050|
+|hist_4_8|2173|2050|
 |hist_8_8|2166|1897|
-|hist_1_8|1840.12|909|
+|hist_1_8|1840|909|
 
 (**bold** = pareto)  MB=1.000.000
 
