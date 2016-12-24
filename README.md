@@ -1,14 +1,15 @@
-TurboHist: Fastest Histogram Construction
+TurboHist: Fastest Histogram Construction [![Build Status](https://travis-ci.org/powturbo/TurboHist.svg?branch=master)](https://travis-ci.org/powturbo/TurboHist)
 =========================================
 
 - ~1.2 clocks per byte
 - 100% C (& C++ compatible) without inline assembly
 - Both 32 and 64 bits supported
-- Portable scalar functions faster thand SIMD functions
+- Portable scalar functions faster than SIMD functions
 - Up to **3 times** faster than naive solution
+- :new: more faster, beats even other fast assembler functions
 
 # Benchmark:
-i7-2600k at 4.5GHz, gcc 5.1, ubuntu 15.04.
+- CPU Sandy Bridge i7-2600k at 4.4GHz, gcc 6.2
 - Single thread
 - Realistic and practical benchmark with large files.
 - No PURE cache benchmark
@@ -16,36 +17,43 @@ i7-2600k at 4.5GHz, gcc 5.1, ubuntu 15.04.
 #### - Uniform/Skewed distribution: 
  - Uniform: [enwik9](http://mattmahoney.net/dc/text.html)
  - Skewed: enwik9 bwt generated w. libdivsufsort
+ - Accurate benchmarking with command "turbohist file -I15"
  
-<table>
-<tr><th>Function</th><th>Uniform: Time MB/s</th><th>Skewed: Time MB/s</th></tr>
-<tr><th>hist_8_32</th><th>2758.61</th><th>2746.19</th></tr>
-<tr><th>hist_4_32</th><th>2745.88</th><th>2594.32</th></tr>
-<tr><th>hist_8_128</th><th>2714.06</th><th>2709.78</th></tr>
-<tr><th>hist_4_128</th><th>2715.28</th><th>2650.48</th></tr>
-<tr><th>hist_8_64</th><th>2697.89</th><th>2670.17</th></tr>
-<tr><th>hist_4_64</th><th>2639.83</th><th>2553.63</th></tr>
-<tr><th>hist_8_8</th><th>2349.73</th><th>2333.46</th></tr>
-<tr><th>hist_4_8</th><th>2213.05</th><th>2082.84</th></tr>
-<tr><th>hist_1_8</th><th>1882.86</th><th>926.88</th></tr>
-<tr><th>count2x64</th><th>2838.60</th><th>2836.31</th></tr>
-</table>
+|Function|Uniform: Time MB/s|Skewed: Time MB/s|
+|**hist_8_32**|**2823**|**2823**|
+|hist_4_32|2817|2679|
+|count2x64|2788|2788|
+|hist_8_128|2780|2778|
+|hist_4_128|2781|2661|
+|hist_8_64|2735|2734|
+|hist_4_64|2730.79|2616|
+|count2x64c|2433|2432|
+|hist_4_8|2173.40|2050|
+|hist_8_8|2166|1897|
+|hist_1_8|1840.12|909|
+
+ (bold = pareto)  MB=1.000.000
 
 ## Compile:
 
 
-        cc -O3 -march=native turbohist.c -o turbohist
-
-## OS/Compiler
-  - Linux: gcc (>=4.6)
-  - clang (>=3.2)
-  - Windows: mingw-w64 (>=4.6)
+        make
 
 ## Usage:
 
 
         turbohist file
 
-## Reference:
+### Environment:
+###### OS/Compiler (32 + 64 bits):
+- Linux: GNU GCC (>=4.6) 
+- clang (>=3.2) 
+- Windows: MinGW
+- Windows: Visual Studio 2015
+- ARM 64 bits/ gcc 
+
+### References:
 Countbench: https://github.com/nkurz/countbench (including "count2x64" with inline assembly)
+
+Last update: 24 DEC 2016
 
