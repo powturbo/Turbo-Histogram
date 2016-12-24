@@ -11,11 +11,15 @@ CXX=g++
 else
   UNAME := $(shell uname -s)
 ifeq ($(UNAME),$(filter $(UNAME),Linux Darwin FreeBSD GNU/kFreeBSD))
-#LDFLAGS+= -lrt
+LDFLAGS+= -lrt
 endif
 endif
 
-CFLAGS+=-march=native
+ifeq ($(AVX2),1)
+CFLAGS+=-mavx2
+endif
+
+CFLAGS+=-march=native 
 
 all: turbohist
 
