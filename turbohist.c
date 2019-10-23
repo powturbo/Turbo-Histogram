@@ -1,5 +1,5 @@
 /**
-Copyright (c) 2013-2017, Powturbo
+Copyright (c) 2013-2019, Powturbo
     - homepage : https://sites.google.com/site/powturbo/
     - github   : https://github.com/powturbo
     - twitter  : https://twitter.com/powturbo
@@ -106,7 +106,7 @@ struct cod cods[] = {
 };
 
 void usage(char *pgm) {
-  fprintf(stderr, "\nTurboHist Copyright (c) 2013-2017 Powturbo %s\n", __DATE__);
+  fprintf(stderr, "\nTurboHist Copyright (c) 2013-2019 Powturbo %s\n", __DATE__);
   fprintf(stderr, "Usage: %s [options] [file]\n", pgm);
   fprintf(stderr, "Benchmark:\n");
   fprintf(stderr, " -i#      # = Minimum  iterations per run (default=auto)\n");
@@ -144,7 +144,7 @@ int main(int argc, char *argv[]) { unsigned char *in;int n,fno;
         exit(0); 
     }
   }
-  printf("\nTurboHist Copyright (c) 2013-2017 Powturbo %s\n", __DATE__);
+  printf("\nTurboHist Copyright (c) 2013-2019 Powturbo %s\n", __DATE__);
 
   for(fno = optind; fno < argc; fno++) {
     finame = argv[fno];
