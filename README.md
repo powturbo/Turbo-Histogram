@@ -19,19 +19,18 @@ TurboHist: Fastest Histogram Construction [![Build Status](https://travis-ci.org
  - Accurate benchmarking with command "turbohist file -I15"
 
 ###### Benchmark Intel CPU: Skylake i7-6700 3.4GHz gcc 9.2
-|Function|Uniform: Time MB/s|Skewed: Time MB/s|
-|-------------|----------:|----------:|
-|**hist_8_32**|**2823**|**2823**|
-|hist_4_32|2817|2679|
-|count2x64|2788|2788|
-|hist_8_128|2780|2778|
-|hist_4_128|2781|2661|
-|hist_8_64|2735|2734|
-|hist_4_64|2731|2616|
+|Uniform: Time MB/s|Skewed: Time MB/s|Function|
+|----------:|----------:|-------------|
+|**2823**|**2823**|**hist_8_32**
+|2817|2679|hist_4_32|
+|2780|2778|hist_8_128|
+|2781|2661|hist_4_128|
+|2735|2734|hist_8_64|
+|2731|2616|hist_4_64|
 |count2x64c|2433|2432|
-|hist_4_8|2173|2050|
-|hist_8_8|2166|1897|
-|hist_1_8|1840|909|
+|2173|2050|hist_4_8|
+|2166|1897|hist_8_8|
+|1840|909|hist_1_8|
 
 ###### Benchmark ARM: ARMv8 A73-ODROID-N2 1.8GHz
 |Uniform: Time MB/s|Skewed: Time MB/s|Function 2019.11|
