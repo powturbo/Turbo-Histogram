@@ -86,7 +86,7 @@ struct cod { FUNC func; char *s; };
 struct cod cods[] = { 
   { hist_8_32,  "hist_8_32"  }, 
   { hist_4_32,  "hist_4_32"  }, 
-    #ifdef __SSE4_1__
+    #if defined(__SSE4_1__) || defined(__ARM_NEON)
   { hist_8_128, "hist_8_128" }, 
   { hist_4_128, "hist_4_128" }, 
     #endif
