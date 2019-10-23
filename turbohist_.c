@@ -31,6 +31,11 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 **/
 
 #include "conf.h"
+  #ifdef __ARM_NEON
+#define PREFETCH(_ip_,_rw_)
+  #else
+#define PREFETCH(_ip_,_rw_) __builtin_prefetch(_ip_,_rw_)
+  #endif
 
 #define RET  if(csum) { unsigned a=0, i; for(i = 0; i < 256; i++) a+=i*c[i];    return a;} else return c[0]
 #define RETN if(csum) { unsigned a=0, i; for(i = 0; i < 256; i++) a+=i*c[0][i]; return a;} else return c[0][0]
@@ -159,15 +164,19 @@ unsigned hist_8_64(unsigned char *in, unsigned inlen) {
   RETN;
 }
 
-  #ifdef __SSE4_1__
+  #if defined(__SSE4_1__) || defined(__ARM_NEON)
+    #ifdef __SSE4_1__
 #include <smmintrin.h>
+    #else
+#include "sse_neon.h"
+    #endif
 unsigned hist_4_128(unsigned char *in, unsigned inlen) { 
   bin_t c[4][CSIZE]={0},i; 
 
   unsigned char *ip;
   __m128i cpv = _mm_loadu_si128((__m128i*)in);
-  for(ip = in; ip != in+(inlen&~(32-1)); ) {
-    __m128i cv=cpv, dv = _mm_loadu_si128((__m128i*)(ip+=16)); cpv = _mm_loadu_si128((__m128i*)(ip+=16)); 
+  for(ip = in; ip != in+(inlen&~(32-1)); ) { ip+=16;
+    __m128i cv=cpv, dv = _mm_loadu_si128((__m128i*)(ip)); ip+=16; cpv = _mm_loadu_si128((__m128i*)(ip)); 
     c[0][_mm_extract_epi8(cv,  0)]++;
     c[1][_mm_extract_epi8(dv,  0)]++;
     c[2][_mm_extract_epi8(cv,  1)]++;
@@ -199,7 +208,7 @@ unsigned hist_4_128(unsigned char *in, unsigned inlen) {
     c[0][_mm_extract_epi8(cv, 14)]++;
     c[1][_mm_extract_epi8(dv, 14)]++;
     c[2][_mm_extract_epi8(cv, 15)]++;
-    c[3][_mm_extract_epi8(dv, 15)]++;            __builtin_prefetch(ip+512, 0);
+    c[3][_mm_extract_epi8(dv, 15)]++;            PREFETCH(ip+512, 0);
   }
   while(ip < in+inlen) c[0][*ip++]++; 
 
@@ -213,8 +222,8 @@ unsigned hist_8_128(unsigned char *in, unsigned inlen) {
 
   unsigned char *ip;
   __m128i cpv = _mm_loadu_si128((__m128i*)in);
-  for(ip = in; ip != in+(inlen&~(32-1)); ) {
-    __m128i cv=cpv, dv = _mm_loadu_si128((__m128i*)(ip+=16)); cpv = _mm_loadu_si128((__m128i*)(ip+=16)); 
+  for(ip = in; ip != in+(inlen&~(32-1)); ) { ip+=16;
+    __m128i cv=cpv, dv = _mm_loadu_si128((__m128i*)(ip)); ip+=16; cpv = _mm_loadu_si128((__m128i*)(ip)); 
     c[0][_mm_extract_epi8(cv,  0)]++;
     c[1][_mm_extract_epi8(dv,  0)]++;
     c[2][_mm_extract_epi8(cv,  1)]++;
@@ -246,7 +255,7 @@ unsigned hist_8_128(unsigned char *in, unsigned inlen) {
     c[4][_mm_extract_epi8(cv, 14)]++;
     c[5][_mm_extract_epi8(dv, 14)]++;
     c[6][_mm_extract_epi8(cv, 15)]++;
-    c[7][_mm_extract_epi8(dv, 15)]++;            __builtin_prefetch(ip+512, 0);
+    c[7][_mm_extract_epi8(dv, 15)]++;            PREFETCH(ip+512, 0);
   }
   while(ip < in+inlen) c[0][*ip++]++; 
 
