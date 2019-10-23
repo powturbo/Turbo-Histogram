@@ -33,7 +33,10 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <string.h>
 #include <stdio.h>
 #include <stdlib.h>
+#include <sys/malloc.h>
+#else
 #include <malloc.h>
+#endif
   #ifdef _MSC_VER
 #include "vs/getopt.h"
   #else 
