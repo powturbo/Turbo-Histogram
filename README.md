@@ -9,7 +9,6 @@ TurboHist: Fastest Histogram Construction [![Build Status](https://travis-ci.org
 - :new: more faster, beats even other fast assembler functions
 
 # Benchmark:
-- CPU Sandy Bridge i7-2600k at 4.4GHz, gcc 6.2
 - Single thread
 - Realistic and practical benchmark with large files.
 - No PURE cache benchmark
@@ -19,7 +18,7 @@ TurboHist: Fastest Histogram Construction [![Build Status](https://travis-ci.org
  - Skewed: enwik9 bwt generated w. libdivsufsort
  - Accurate benchmarking with command "turbohist file -I15"
 
-
+###### Benchmark Intel CPU: Skylake i7-6700 3.4GHz gcc 9.2
 |Function|Uniform: Time MB/s|Skewed: Time MB/s|
 |-------------|----------:|----------:|
 |**hist_8_32**|**2823**|**2823**|
@@ -33,6 +32,19 @@ TurboHist: Fastest Histogram Construction [![Build Status](https://travis-ci.org
 |hist_4_8|2173|2050|
 |hist_8_8|2166|1897|
 |hist_1_8|1840|909|
+
+###### Benchmark ARM: ARMv8 A73-ODROID-N2 1.8GHz
+|Uniform: Time MB/s|Skewed: Time MB/s|Function 2019.11|
+|-----:|------:|----------|
+|**719|**717**|**hist_4_32**|
+|  692| 700	|hist_8_32|
+|  686| 689	|hist_8_64|
+|  546|548 |	hist_8_128
+|  572|573 |	hist_4_128
+|  709| 711|	hist_4_64|
+|  667| 671|	hist_8_8|
+|  639| 641 |	hist_4_8|
+|  597| 461|	hist_1_8|
 
 (**bold** = pareto)  MB=1.000.000
 
@@ -48,14 +60,12 @@ TurboHist: Fastest Histogram Construction [![Build Status](https://travis-ci.org
 
 ### Environment:
 ###### OS/Compiler (32 + 64 bits):
-- Linux: GNU GCC (>=4.6) 
-- clang (>=3.2) 
-- Windows: MinGW
-- Windows: Visual Studio 2015
-- ARM 64 bits/ gcc 
+- Windows: MinGW-w64 makefile
+- Linux amd/intel: GNU GCC (>=4.6)
+- Linux amd/intel: Clang (>=3.2) 
+- Linux arm: aarch64 ARMv8:  gcc (>=6.3)
+- MaxOS: XCode (>=9)
+- PowerPC ppc64le: gcc (>=8.0)
 
-### References:
-Countbench: https://github.com/nkurz/countbench (including "count2x64" with inline assembly)
-
-Last update: 24 DEC 2016
+Last update: 24 Oct 2019
 
