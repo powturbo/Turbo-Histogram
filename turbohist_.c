@@ -1,5 +1,5 @@
 /**
-Copyright (c) 2013-2017, Powturbo
+Copyright (c) 2013-2019, Powturbo
     - homepage : https://sites.google.com/site/powturbo/
     - github   : https://github.com/powturbo
     - twitter  : https://twitter.com/powturbo
