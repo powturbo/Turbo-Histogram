@@ -36,7 +36,7 @@ TurboHist: Fastest Histogram Construction [![Build Status](https://travis-ci.org
 ###### Benchmark ARM: ARMv8 A73-ODROID-N2 1.8GHz
 |Uniform: Time MB/s|Skewed: Time MB/s|Function 2019.11|
 |-----:|------:|----------|
-|**719|**717**|**hist_4_32**|
+|**719**|**717**|**hist_4_32**|
 |  692| 700	|hist_8_32|
 |  686| 689	|hist_8_64|
 |  546|548 |	hist_8_128
