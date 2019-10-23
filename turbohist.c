@@ -33,6 +33,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <string.h>
 #include <stdio.h>
 #include <stdlib.h>
+#ifdef __APPLE__
 #include <sys/malloc.h>
 #else
 #include <malloc.h>
