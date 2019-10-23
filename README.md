@@ -27,7 +27,7 @@ TurboHist: Fastest Histogram Construction [![Build Status](https://travis-ci.org
 |2781|2661|hist_4_128|
 |2735|2734|hist_8_64|
 |2731|2616|hist_4_64|
-|count2x64c|2433|2432|
+|2433|2432|count2x64c|
 |2173|2050|hist_4_8|
 |2166|1897|hist_8_8|
 |1840|909|hist_1_8|
