@@ -1,4 +1,4 @@
-TurboHist: Fastest Histogram Construction [![Build Status](https://travis-ci.org/powturbo/TurboHist.svg?branch=master)](https://travis-ci.org/powturbo/TurboHist)
+TurboHist: Fastest Histogram Construction [![Build Status](https://travis-ci.org/powturbo/Turbo-Histogram.svg?branch=master)](https://travis-ci.org/powturbo/Turbo-Histogram)
 =========================================
 
 - ~1.2 clocks per byte
@@ -66,5 +66,5 @@ TurboHist: Fastest Histogram Construction [![Build Status](https://travis-ci.org
 - MaxOS: XCode (>=9)
 - PowerPC ppc64le: gcc (>=8.0)
 
-Last update: 24 Oct 2019
+Last update: 20 Aug 2020
 
