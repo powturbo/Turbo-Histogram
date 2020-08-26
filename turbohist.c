@@ -40,6 +40,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #endif
   #ifdef _MSC_VER
 #include "vs/getopt.h"
+#include "vs/getopt.c"
   #else 
 #include <getopt.h>
 #include <unistd.h>   
