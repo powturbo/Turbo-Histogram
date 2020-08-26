@@ -39,12 +39,22 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <malloc.h>
 #endif
   #ifdef _MSC_VER
-#include "vs/getopt.h"
-#include "vs/getopt.c"
+    #include "vs/getopt.h"
+    #include "vs/getopt.c"
   #else 
 #include <getopt.h>
 #include <unistd.h>   
   #endif
+
+#if defined(_MSC_VER) && defined(_M_IX86_FP) && defined(__AVX__)
+    // For some reason SSE4.1 is a runtime value for the MSVC compiler.
+    // So if __AVX__ exist, just assume SSE4.1 is supported.    
+    // Support is indicated via the CPUID.01H:ECX.SSE41[Bit 19] flag.
+    // https://docs.microsoft.com/en-us/cpp/preprocessor/predefined-macros?view=vs-2019
+    // https://docs.microsoft.com/en-us/cpp/intrinsics/cpuid-cpuidex?view=vs-2019
+    #define __SSE4_1__ 1
+#endif
+
 
 //--------------------------------------- Time ------------------------------------------------------------------------
 #include <time.h>
