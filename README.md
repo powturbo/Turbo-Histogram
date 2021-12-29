@@ -117,8 +117,8 @@ All zeros: size=1.000.0000.000
 |32:memcpy                   |14057.53|0.2636|C|
 
 (**bold** = pareto)  MB=1.000.000
-[Ryg](https://gist.github.com/rygorous/a86a5cf348922cdea357c928e32fc7e0)
-[Countbench](https://github.com/nkurz/countbench)
+- [Ryg](https://gist.github.com/rygorous/a86a5cf348922cdea357c928e32fc7e0) <br/>
+- [Countbench](https://github.com/nkurz/countbench)
 
 ## Compile:
 
