@@ -137,7 +137,8 @@ All zeros: size=1.000.0000.000
                 set to -I15 for accurate timings  
         -z      set read buffer to zeros
                 
-Examples:
+### Examples:
+
         ./turbohist file
         ./turbohist -e1,7,9
 
