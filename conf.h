@@ -1,7 +1,7 @@
 /**
     Copyright (C) powturbo 2013-2019
     GPL v2 License
-  
+
     This program is free software; you can redistribute it and/or modify
     it under the terms of the GNU General Public License as published by
     the Free Software Foundation; either version 2 of the License, or
@@ -22,28 +22,29 @@
     - email    : powturbo [_AT_] gmail [_DOT_] com
 **/
 
-//	   conf.h - config & common 
+// conf.h - config & common
 #ifndef CONF_H
 #define CONF_H
 //------------------------- Compiler ------------------------------------------
   #if defined(__GNUC__)
 #include <stdint.h>
-#define ALIGNED(t,v,n)  t v __attribute__ ((aligned (n))) 
+#define ALIGNED(t,v,n)  t v __attribute__ ((aligned (n)))
 #define ALWAYS_INLINE   inline __attribute__((always_inline))
 #define NOINLINE        __attribute__((noinline))
-#define _PACKED 		__attribute__ ((packed))
-#define likely(x)     	__builtin_expect((x),1)
-#define unlikely(x)   	__builtin_expect((x),0)
+#define _PACKED         __attribute__ ((packed))
+#define likely(x)       __builtin_expect((x),1)
+#define unlikely(x)     __builtin_expect((x),0)
 
-#define popcnt32(_x_) 	__builtin_popcount(_x_)
-#define popcnt64(_x_) 	__builtin_popcountll(_x_)
+#define popcnt32(_x_)   __builtin_popcount(_x_)
+#define popcnt64(_x_)   __builtin_popcountll(_x_)
 
     #if defined(__i386__) || defined(__x86_64__)
-//__bsr32:     1:0,2:1,3:1,4:2,5:2,6:2,7:2,8:3,9:3,10:3,11:3,12:3,13:3,14:3,15:3,16:4,17:4,18:4,19:4,20:4,21:4,22:4,23:4,24:4,25:4,26:4,27:4,28:4,29:4,30:4,31:4,32:5
-//  bsr32: 0:0,1:1,2:2,3:2,4:3,5:3,6:3,7:3,8:4,9:4,10:4,11:4,12:4,13:4,14:4,15:4,16:5,17:5,18:5,19:5,20:5,21:5,22:5,23:5,24:5,25:5,26:5,27:5,28:5,29:5,30:5,31:5,32:6,
+//x,__bsr32:     1:0,2:1,3:1,4:2,5:2,6:2,7:2,8:3,9:3,10:3,11:3,12:3,13:3,14:3,15:3,16:4,17:4,18:4,19:4,20:4,21:4,22:4,23:4,24:4,25:4,26:4,27:4,28:4,29:4,30:4,31:4,32:5
+//  x,bsr32: 0:0,1:1,2:2,3:2,4:3,5:3,6:3,7:3,8:4,9:4,10:4,11:4,12:4,13:4,14:4,15:4,16:5,17:5,18:5,19:5,20:5,21:5,22:5,23:5,24:5,25:5,26:5,27:5,28:5,29:5,30:5,31:5,32:6,
 static inline int    __bsr32(               int x) {             asm("bsr  %1,%0" : "=r" (x) : "rm" (x) ); return x; }
 static inline int      bsr32(               int x) { int b = -1; asm("bsrl %1,%0" : "+r" (b) : "rm" (x) ); return b + 1; }
-static inline int      bsr64(uint64_t x) { return x?64 - __builtin_clzll(x):0; }
+static inline int      bsr64(uint64_t x          ) { return x?64 - __builtin_clzll(x):0; }
+static inline int    __bsr64(uint64_t x          ) { return   63 - __builtin_clzll(x);   }
 
 static inline unsigned rol32(unsigned x, int s) { asm ("roll %%cl,%0" :"=r" (x) :"0" (x),"c" (s)); return x; }
 static inline unsigned ror32(unsigned x, int s) { asm ("rorl %%cl,%0" :"=r" (x) :"0" (x),"c" (s)); return x; }
@@ -63,9 +64,9 @@ static inline unsigned ror64(unsigned x, int s) { return x >> s | x << (64 - s);
 #define ctz64(_x_) __builtin_ctzll(_x_)
 #define ctz32(_x_) __builtin_ctz(_x_)    // 0:32  ctz32(1<<a) = a (a=1..31)
 #define clz64(_x_) __builtin_clzll(_x_)
-#define clz32(_x_) __builtin_clz(_x_)
+#define clz32(_x_) __builtin_clz(_x_)    // 00000000 00000000 00000000 01000000 = 25
 
-//#define bswap8(x)    (x) 
+//#define bswap8(x)    (x)
     #if __GNUC__ > 4 || __GNUC__ == 4 && __GNUC_MINOR__ >= 8
 #define bswap16(x) __builtin_bswap16(x)
     #else
@@ -81,17 +82,17 @@ static inline unsigned short bswap16(unsigned short x) { return __builtin_bswap3
 #include "vs/stdint.h"
 #define __builtin_prefetch(x,a)
 #define inline          __inline
-    #else 
+    #else
 #include <stdint.h>
 #define __builtin_prefetch(x,a) _mm_prefetch(x, _MM_HINT_NTA)
     #endif
-	
+
 #define ALIGNED(t,v,n)  __declspec(align(n)) t v
-#define ALWAYS_INLINE	__forceinline
-#define NOINLINE		__declspec(noinline)
-#define THREADLOCAL		__declspec(thread)
-#define likely(x)     	(x)
-#define unlikely(x)   	(x)
+#define ALWAYS_INLINE   __forceinline
+#define NOINLINE        __declspec(noinline)
+#define THREADLOCAL     __declspec(thread)
+#define likely(x)       (x)
+#define unlikely(x)     (x)
 
 static inline int __bsr32(unsigned x) { unsigned long z=0; _BitScanReverse(&z, x); return z; }
 static inline int bsr32(  unsigned x) { unsigned long z;   _BitScanReverse(&z, x); return x?z+1:0; }
@@ -99,12 +100,12 @@ static inline int ctz32(  unsigned x) { unsigned long z;   _BitScanForward(&z, x
 static inline int clz32(  unsigned x) { unsigned long z;   _BitScanReverse(&z, x); return x?31-z:32; }
   #if !defined(_M_ARM64) && !defined(_M_X64)
 static inline unsigned char _BitScanForward64(unsigned long* ret, uint64_t x) {
-  unsigned long x0 = (unsigned long)x, top, bottom;         _BitScanForward(&top, (unsigned long)(x >> 32)); _BitScanForward(&bottom, x0);               
-  *ret = x0 ? bottom : 32 + top;  return x != 0; 
+  unsigned long x0 = (unsigned long)x, top, bottom;         _BitScanForward(&top, (unsigned long)(x >> 32)); _BitScanForward(&bottom, x0);
+  *ret = x0 ? bottom : 32 + top;  return x != 0;
 }
 static unsigned char _BitScanReverse64(unsigned long* ret, uint64_t x) {
-  unsigned long x1 = (unsigned long)(x >> 32), top, bottom; _BitScanReverse(&top, x1);                       _BitScanReverse(&bottom, (unsigned long)x); 
-  *ret = x1 ? top + 32 : bottom;  return x != 0; 
+  unsigned long x1 = (unsigned long)(x >> 32), top, bottom; _BitScanReverse(&top, x1);                       _BitScanReverse(&bottom, (unsigned long)x);
+  *ret = x1 ? top + 32 : bottom;  return x != 0;
 }
   #endif
 static inline int bsr64(uint64_t x) { unsigned long z=0; _BitScanReverse64(&z, x); return x?z+1:0; }
@@ -132,8 +133,10 @@ static inline int clz64(uint64_t x) { unsigned long z;   _BitScanReverse64(&z, x
 #define strncasecmp _strnicmp
 #define strtoull    _strtoui64
 static inline double round(double num) { return (num > 0.0) ? floor(num + 0.5) : ceil(num - 0.5); }
-  #endif 
+  #endif
 
+#define __bsr8(_x_)  __bsr32(_x_)
+#define __bsr16(_x_) __bsr32(_x_)
 #define bsr8(_x_)  bsr32(_x_)
 #define bsr16(_x_) bsr32(_x_)
 #define ctz8(_x_)  ctz32(_x_)
@@ -141,8 +144,8 @@ static inline double round(double num) { return (num > 0.0) ? floor(num + 0.5) :
 #define clz8(_x_)  (clz32(_x_)-24)
 #define clz16(_x_) (clz32(_x_)-16)
 
-#define popcnt8(x)  popcnt32(x) 
-#define popcnt16(x) popcnt32(x) 
+#define popcnt8(x)  popcnt32(x)
+#define popcnt16(x) popcnt32(x)
 
 //--------------- Unaligned memory access -------------------------------------
   #ifdef UA_MEMCPY
@@ -171,7 +174,7 @@ static inline void               stof64(      void *cp, double             x) { 
 #define ctou32(_cp_) (*(unsigned       *)(_cp_))
 #define ctof32(_cp_) (*(float          *)(_cp_))
 
-    #if defined(__i386__) || defined(__x86_64__) || defined(__powerpc__) || defined(__s390__) || defined(_MSC_VER) 
+    #if defined(__i386__) || defined(__x86_64__) || defined(__powerpc__) || defined(__s390__) || defined(_MSC_VER)
 #define ctou64(_cp_)       (*(uint64_t *)(_cp_))
 #define ctof64(_cp_)       (*(double   *)(_cp_))
     #elif defined(__ARM_FEATURE_UNALIGNED)
@@ -194,7 +197,7 @@ struct _PACKED doubleu   { double             d; };
 #define ctof32(_cp_) ((struct floatu    *)(_cp_))->f
 #define ctof64(_cp_) ((struct doubleu   *)(_cp_))->d
   #else
-#error "unknown cpu"	  
+#error "unknown cpu"
   #endif
 
 #define ctou24(_cp_) (ctou32(_cp_) & 0xffffff)
@@ -210,48 +213,79 @@ struct _PACKED doubleu   { double             d; };
     defined(__s390x__)
 #define __WORDSIZE 64
   #else
-#define __WORDSIZE 32 
+#define __WORDSIZE 32
   #endif
 #endif
 
 //---------------------misc ---------------------------------------------------
-#define BZHI64(_u_, _b_) ((_u_) & ((1ull<<(_b_))-1))
-#define BZHI32(_u_, _b_) ((_u_) & ((1u  <<(_b_))-1))
-#define BZHI16(_u_, _b_) BZHI32(_u_, _b_)
-#define BZHI8(_u_, _b_)  BZHI32(_u_, _b_)
+//#define bzhi63(_u_, _b_) 				((_u_) & ((1ull<<(_b_))-1))  // _b_ < 64
+//#define bzhi63(_u_, _b_)                ((_u_) & ((1u  <<(_b_))-1))  // _b_ < 32
+#define BZHI64(_u_, _b_)                 (_b_ == 64?0xffffffffffffffffull:((_u_) & ((1ull<<(_b_))-1)))  // b Constant
+#define BZHI32(_u_, _b_)                 (_b_ == 32?        0xffffffffu  :((_u_) & ((1u  <<(_b_))-1)))  
+#define BZHI16(_u_, _b_)                 BZHI32(_u_, _b_)
+#define BZHI8( _u_, _b_)                 BZHI32(_u_, _b_)
+
+    #ifdef __AVX2__
+      #if defined(_MSC_VER) && !defined(__INTEL_COMPILER)
+#include <intrin.h>
+      #else
+#include <x86intrin.h>
+      #endif
+#define bzhi32(_u_, _b_)                 _bzhi_u32(_u_, _b_)  // b variable
+#define bzhi31(_u_, _b_)                 _bzhi_u32(_u_, _b_)
+
+      #if !(defined(_M_X64) || defined(__amd64__)) && (defined(__i386__) || defined(_M_IX86))
+#define bzhi64(_u_, _b_)                 BZHI64(_u_, _b_)
+#define bzhi63(_u_, _b_)                 ((_u_) & ((1ull<<(_b_))-1))
+      #else
+#define bzhi64(_u_, _b_)                 _bzhi_u64(_u_, _b_)
+#define bzhi63(_u_, _b_)                 _bzhi_u64(_u_, _b_)
+      #endif
+    #else
+#define bzhi64(_u_, _b_)                 BZHI64(_u_, _b_) 
+#define bzhi63(_u_, _b_)                 ((_u_) & ((1ull <<(_b_))-1)) 
+#define bzhi32(_u_, _b_)                 ((_u_) & ((1ull <<(_b_))-1))
+#define bzhi31(_u_, _b_)                 ((_u_) & ((1    <<(_b_))-1))
+    #endif
+
+#define bzhi16(_u_, _b_)                 bzhi31(_u_, _b_)
+#define bzhi8( _u_, _b_)                 bzhi31(_u_, _b_)
+
 
 #define SIZE_ROUNDUP(_n_, _a_) (((size_t)(_n_) + (size_t)((_a_) - 1)) & ~(size_t)((_a_) - 1))
 #define ALIGN_DOWN(__ptr, __a) ((void *)((uintptr_t)(__ptr) & ~(uintptr_t)((__a) - 1)))
-  
+
 #define TEMPLATE2_(_x_, _y_) _x_##_y_
-#define TEMPLATE2(_x_, _y_) TEMPLATE2_(_x_,_y_)
+#define T2(_x_, _y_) TEMPLATE2_(_x_,_y_)
 
 #define TEMPLATE3_(_x_,_y_,_z_) _x_##_y_##_z_
-#define TEMPLATE3(_x_,_y_,_z_) TEMPLATE3_(_x_, _y_, _z_)
+#define T3(_x_,_y_,_z_) TEMPLATE3_(_x_, _y_, _z_)
 
 #define CACHE_LINE_SIZE     64
 #define PREFETCH_DISTANCE   (CACHE_LINE_SIZE*4)
+
+#define CLAMP(_x_, _low_, _high_)  (((_x_) > (_high_)) ? (_high_) : (((_x_) < (_low_)) ? (_low_) : (_x_)))
+
 //--- NDEBUG -------
 #include <stdio.h>
   #ifdef _MSC_VER
     #ifdef NDEBUG
 #define AS(expr, fmt, ...)
-#define AC(expr, fmt, ...) do { if(!(expr)) { fprintf(stderr, fmt, ##__VA_ARGS__ ); fflush(stderr); abort(); } } while(0)
+#define AC(expr, fmt, ...) do { if(!(expr)) { fprintf(stderr, fmt, ##__VA_ARGS__ ); fflush(stderr); exit(-1); } } while(0)
 #define die(fmt, ...) do { fprintf(stderr, fmt, ##__VA_ARGS__ ); fflush(stderr); exit(-1); } while(0)
     #else
-#define AS(expr, fmt, ...) do { if(!(expr)) { fflush(stdout);fprintf(stderr, "%s:%s:%d:", __FILE__, __FUNCTION__, __LINE__); fprintf(stderr, fmt, ##__VA_ARGS__ ); fflush(stderr); abort(); } } while(0)
-#define AC(expr, fmt, ...) do { if(!(expr)) { fflush(stdout);fprintf(stderr, "%s:%s:%d:", __FILE__, __FUNCTION__, __LINE__); fprintf(stderr, fmt, ##__VA_ARGS__ ); fflush(stderr); abort(); } } while(0)
+#define AS(expr, fmt, ...) do { if(!(expr)) { fflush(stdout);fprintf(stderr, "%s:%s:%d:", __FILE__, __FUNCTION__, __LINE__); fprintf(stderr, fmt, ##__VA_ARGS__ ); fflush(stderr); exit(-1); } } while(0)
+#define AC(expr, fmt, ...) do { if(!(expr)) { fflush(stdout);fprintf(stderr, "%s:%s:%d:", __FILE__, __FUNCTION__, __LINE__); fprintf(stderr, fmt, ##__VA_ARGS__ ); fflush(stderr); exit(-1); } } while(0)
 #define die(fmt, ...) do { fprintf(stderr, "%s:%s:%d:", __FILE__, __FUNCTION__, __LINE__); fprintf(stderr, fmt, ##__VA_ARGS__ ); fflush(stderr); exit(-1); } while(0)
     #endif
-  #else 
+  #else
     #ifdef NDEBUG
 #define AS(expr, fmt,args...)
-#define AC(expr, fmt,args...) do { if(!(expr)) { fprintf(stderr, fmt, ## args ); fflush(stderr); abort(); } } while(0)
+#define AC(expr, fmt,args...) do { if(!(expr)) { fprintf(stderr, fmt, ## args ); fflush(stderr); exit(-1); } } while(0)
 #define die(fmt,args...) do { fprintf(stderr, fmt, ## args ); fflush(stderr); exit(-1); } while(0)
     #else
-#define AS(expr, fmt,args...) do { if(!(expr)) { fflush(stdout);fprintf(stderr, "%s:%s:%d:", __FILE__, __FUNCTION__, __LINE__); fprintf(stderr, fmt, ## args ); fflush(stderr); abort(); } } while(0)
-#define AC(expr, fmt,args...) do { if(!(expr)) { fflush(stdout);fprintf(stderr, "%s:%s:%d:", __FILE__, __FUNCTION__, __LINE__); fprintf(stderr, fmt, ## args ); fflush(stderr); abort(); } } while(0)
+#define AS(expr, fmt,args...) do { if(!(expr)) { fflush(stdout);fprintf(stderr, "%s:%s:%d:", __FILE__, __FUNCTION__, __LINE__); fprintf(stderr, fmt, ## args ); fflush(stderr); exit(-1); } } while(0)
+#define AC(expr, fmt,args...) do { if(!(expr)) { fflush(stdout);fprintf(stderr, "%s:%s:%d:", __FILE__, __FUNCTION__, __LINE__); fprintf(stderr, fmt, ## args ); fflush(stderr); exit(-1); } } while(0)
 #define die(fmt,args...) do { fprintf(stderr, "%s:%s:%d:", __FILE__, __FUNCTION__, __LINE__); fprintf(stderr, fmt, ## args ); fflush(stderr); exit(-1); } while(0)
     #endif
   #endif
-
