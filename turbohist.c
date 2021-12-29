@@ -1,5 +1,5 @@
 /**
-Copyright (c) 2013-2019, Powturbo
+Copyright (c) 2013-2022, Powturbo
     - homepage : https://sites.google.com/site/powturbo/
     - github   : https://github.com/powturbo
     - twitter  : https://twitter.com/powturbo
@@ -29,101 +29,110 @@ LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING
 NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
 SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 **/
-
+// Turbo histogram benchmark 
 #include <string.h>
 #include <stdio.h>
 #include <stdlib.h>
-#ifdef __APPLE__
+  #ifdef __APPLE__
 #include <sys/malloc.h>
-#else
+  #else
 #include <malloc.h>
-#endif
+  #endif
   #ifdef _MSC_VER
 #include "vs/getopt.h"
   #else 
 #include <getopt.h>
 #include <unistd.h>   
   #endif
-
-//--------------------------------------- Time ------------------------------------------------------------------------
-#include <time.h>
-typedef unsigned long long tm_t;
-#define TM_T 1000000.0
-  #ifdef _WIN32
-#include <windows.h>
-static LARGE_INTEGER tps;
-static tm_t tmtime(void) { LARGE_INTEGER tm; QueryPerformanceCounter(&tm); return (tm_t)((double)tm.QuadPart*1000000.0/tps.QuadPart); }
-static tm_t tminit() { QueryPerformanceFrequency(&tps); tm_t t0=tmtime(),ts; while((ts = tmtime())==t0); return ts; } 
-  #else
-static   tm_t tmtime(void)    { struct timespec tm; clock_gettime(CLOCK_MONOTONIC, &tm); return (tm_t)tm.tv_sec*1000000ull + tm.tv_nsec/1000; }
-static   tm_t tminit()        { tm_t t0=tmtime(),ts; while((ts = tmtime())==t0); return ts; }
-  #endif 
-//---------------------------------------- bench --------------------------------------------------------------
-#define MBS 		  1000000.0
-#define TMBS(__l,__t) ((__t)>=0.000001?((double)(__l)/MBS)/((__t)/TM_T):0.0)
-#define TM_TX         TM_T 
- 
-#define TMDEF unsigned tm_r,tm_R,tm_c; tm_t _t0,_tc,_ts; double _tmbs=0.0;
-#define TMSLEEP do { tm_T = tmtime(); if(!tm_0) tm_0 = tm_T; else if(tm_T - tm_0 > tm_TX) { printf("S \b\b\b");fflush(stdout); sleep(tm_slp); tm_0=tmtime();} } while(0)
-#define TMBEG(_c_, _tm_reps_, _tm_Reps_) \
-  for(tm_c=_c_,tm_tm = (1ull<<63),tm_rm=1,tm_R=0,_ts=tmtime(); tm_R < _tm_Reps_; tm_R++) { printf("%8.2f %.2d_%d\b\b\b\b\b\b\b\b\b\b\b\b\b",_tmbs,tm_R+1,tm_c);fflush(stdout);\
-    for(_t0 = tminit(), tm_r=0; tm_r < _tm_reps_;) {
- 
-#define TMEND(_len_) tm_T = tmtime(); tm_r++; if((_tc = (tm_T - _t0)) > tm_tx) break; }\
-  if(_tc/(double)tm_r < (double)tm_tm/(double)tm_rm) { tm_tm = _tc; tm_rm=tm_r; tm_c++; double _d = (double)tm_tm/(double)tm_rm; _tmbs=TMBS(_len_, _d); } else if(_tc/tm_tm>1.2) TMSLEEP; if(tm_T-_ts > tm_TX) break;\
-  if((tm_R & 7)==7) { sleep(tm_slp); _ts=tmtime(); } }
-
-#define TMVARS static unsigned tm_repc = 1<<30, tm_Repc = 4, tm_repd = 1<<30, tm_Repd = 4, tm_rm, tm_slp = 25;\
-               static tm_t     tm_tm, tm_tx = TM_TX, tm_TX = 30*TM_TX, tm_0, tm_T, tm_RepkT=24*3600*TM_TX;
-//--------------------------------------------------------------------------------------------------------------
-TMVARS; 
-
-//#define COUNTBENCH  // https://github.com/nkurz/countbench 
+#include "conf.h"
+#include "time_.h"
 
 #include "turbohist_.c"
+  #ifdef _RYG
+#include "histotest.cpp"
+  #endif 
 
-#define GB (1<<30)
-
-typedef unsigned (*FUNC)(unsigned char *in, unsigned n);
-struct cod { FUNC func; char *s; };
-
-struct cod cods[] = { 
-  { hist_8_32,  "hist_8_32"  }, 
-  { hist_4_32,  "hist_4_32"  }, 
-    #if defined(__SSE4_1__) || defined(__ARM_NEON)
-  { hist_8_128, "hist_8_128" }, 
-  { hist_4_128, "hist_4_128" }, 
-    #endif
-    #ifdef __AVX2__
-  { hist_8_256, "hist_8_256" }, 
-  { hist_4_256, "hist_4_256" }, 
-    #endif
-  { hist_8_64,  "hist_8_64"  }, 
-  { hist_4_64,  "hist_4_64"  }, 
-  { hist_8_8,   "hist_8_8"   }, 
-  { hist_4_8,   "hist_4_8"   }, 
-  { hist_1_8,   "hist_1_8"   }, 
-    #ifdef COUNTBENCH
-  { count2x64,  "count2x64"  }, 
-  { count2x64c, "count2x64c" },
-    #endif
-};
-
+NOINLINE void libmemcpy(unsigned char *dst, unsigned char *src, int len) {
+  void *(*memcpy_ptr)(void *, const void *, size_t) = memcpy;
+  if (time(NULL) == 1)
+    memcpy_ptr = NULL;
+  memcpy_ptr(dst, src, len);
+}
+    
 void usage(char *pgm) {
-  fprintf(stderr, "\nTurboHist Copyright (c) 2013-2019 Powturbo %s\n", __DATE__);
+  fprintf(stderr, "\nTurboHist Copyright (c) 2013-2022 Powturbo %s\n", __DATE__);
   fprintf(stderr, "Usage: %s [options] [file]\n", pgm);
   fprintf(stderr, "Benchmark:\n");
-  fprintf(stderr, " -i#      # = Minimum  iterations per run (default=auto)\n");
-  fprintf(stderr, " -I#      # = Number of runs (default=4)\n");
-  fprintf(stderr, "Check:\n");
-  fprintf(stderr, " -s       print checksum\n");
+  fprintf(stderr, " -I#      # = Number of runs (default=3)\n");
+  fprintf(stderr, " -z       set the read buffer to zeros\n");
   fprintf(stderr, "Ex. ./turbohist file -I15\n");
+  fprintf(stderr, "    ./turbohist file -I15 -z\n");
+  fprintf(stderr, "    ./turbohist file -e1,4,8,15 -I15\n");
   exit(0);
+}      
+          
+int check(unsigned *cnt, unsigned n, unsigned *scnt) { unsigned i; for(i=0;i<256;i++) if(cnt[i]!=scnt[i]) { printf("Error sum at %d ", i); return 0; } printf(" %s", TM_MBS); }
+
+int bench(unsigned char *in, unsigned n, unsigned *cnt, unsigned id, unsigned *scnt) {
+  switch(id) {
+	case  1: TMBENCH(" 1:hist_1_8   naiv    8 bits", hist_1_8(   in, n, cnt),n);			break; 
+	case  2: TMBENCH(" 2:hist_4_8   4 bins/ 8 bits", hist_4_8(   in, n, cnt),n);			break;
+	case  3: TMBENCH(" 3:hist_8_8   8 bins/ 8 bits", hist_8_8(   in, n, cnt),n);			break;
+	case  4: TMBENCH(" 4:hist_4_32  4 bins/32 bits", hist_4_32(  in, n, cnt),n);			break;
+	case  5: TMBENCH(" 5:hist_8_32  8 bins/32 bits", hist_8_32(  in, n, cnt),n);			break;
+ 	case  6: TMBENCH(" 6:hist_4_64  4 bins/64 bits", hist_4_64(  in, n, cnt),n);			break;
+	case  7: TMBENCH(" 7:hist_8_64  8 bins/64 bits", hist_8_64(  in, n, cnt),n);			break;
+ 	case  8: TMBENCH(" 8:histr_4_64 4/64+run      ", histr_4_64( in, n, cnt),n);			break;
+	case  9: TMBENCH(" 9:histr_8_64 8/64+run      ", histr_8_64( in, n, cnt),n);			break;
+      #ifdef __ARM_NEON
+	case 10: TMBENCH("10:hist_4_128 4 bins/neon   ", hist_4_128( in, n, cnt),n);			break;
+	case 11: TMBENCH("11:hist_8_128 8 bins/neon   ", hist_8_128( in, n, cnt),n);			break;
+      #else
+	case 10: TMBENCH("10:hist_4_128 4 bins/sse4.1 ", hist_4_128( in, n, cnt),n);			break;
+	case 11: TMBENCH("11:hist_8_128 8 bins/sse4.1 ", hist_8_128( in, n, cnt),n);			break;
+      #endif
+	  #ifdef __AVX2__
+	case 12: TMBENCH("12:hist_4_256 4 bins/avx2   ", hist_4_256( in, n, cnt),n);			break;
+	case 13: TMBENCH("13:hist_8_256 8 bins/avx2   ", hist_8_256( in, n, cnt),n);			break;
+	  #endif
+      #ifdef __x86_64
+	case 15: TMBENCH("15:hist_8_64asm inline asm  ", hist_8_64a( in, n, cnt),n);		    break;
+	  #endif
+	  #ifdef _COUNTBENCH
+	case 18: TMBENCH("18:count2x64    inline asm  ", count2x64(  in, n, cnt),n);            break;  
+//	case 19: TMBENCH("19:count2x64c               ", count2x64c( in, n, cnt),n);            break;
+ 	  #endif 
+      #ifdef _RYG	  
+	case 20: TMBENCH("20:histo_ref                ", histo_ref(             cnt, in, n),n); break; 
+	case 21: TMBENCH("21:histo_cpp_1x             ", histo_cpp_1x(          cnt, in, n),n); break; 
+	case 22: TMBENCH("22:histo_cpp_2x             ", histo_cpp_2x(          cnt, in, n),n); break; 
+	case 23: TMBENCH("23:histo_cpp_4x             ", histo_cpp_4x(          cnt, in, n),n); break; 
+	case 24: TMBENCH("24:histo_asm_scalar4        ", histo_asm_scalar4(     cnt, in, n),n); break; 
+	case 25: TMBENCH("25:histo_asm_scalar8        ", histo_asm_scalar8(     cnt, in, n),n); break; 
+	case 26: TMBENCH("26:histo_asm_scalar8_var    ", histo_asm_scalar8_var( cnt, in, n),n); break; 
+	case 27: TMBENCH("27:histo_asm_scalar8_var2   ", histo_asm_scalar8_var2(cnt, in, n),n); break;
+	case 28: TMBENCH("28:histo_asm_scalar8_var3   ", histo_asm_scalar8_var3(cnt, in, n),n); break;
+	case 29: TMBENCH("29:histo_asm_scalar8_var4   ", histo_asm_scalar8_var4(cnt, in, n),n); break;
+	case 30: TMBENCH("30:histo_asm_scalar8_var5   ", histo_asm_scalar8_var5(cnt, in, n),n); break;
+	case 31: TMBENCH("31:histo_asm_sse4           ", histo_asm_sse4(        cnt, in, n),n); break;
+	    #ifdef __AVX2__
+    case 37: TMBENCH("37:histo_asm_avx256_8x_1    ", histo_asm_avx256_8x_1( cnt, in, n),n); break;
+	case 38: TMBENCH("38:histo_asm_avx256_8x_2    ", histo_asm_avx256_8x_2( cnt, in, n),n); break;
+	case 39: TMBENCH("39:histo_asm_avx256_8x_3    ", histo_asm_avx256_8x_3( cnt, in, n),n); break;
+	    #endif	 
+	  #endif
+	case 32: { unsigned char *cpy = malloc(n); if(cpy) { TMBENCH("32:memcpy                   ", libmemcpy(cpy, in, n),n); free(cpy); printf(" %s", TM_MBS); } } return 0; break;
+    #define ID_LAST 32	
+    default: return 0;
+  }        
+  check(cnt,n,scnt);
+  return 1; 
 } 
 
-int main(int argc, char *argv[]) { unsigned char *in;int n,fno;
-  char *finame = argv[1];  
-
+int main(int argc, char *argv[]) { 
+  unsigned char *finame = argv[1], *scmd = NULL, *in; 
+  unsigned n, fno, zero=0, scnt[256], cnt[256]; 
+        
   int c, digit_optind = 0;
   for(;;) {
     int this_option_optind = optind ? optind : 1;
@@ -132,61 +141,58 @@ int main(int argc, char *argv[]) { unsigned char *in;int n,fno;
       { "help", 	0, 0, 'h'},
       { 0, 		    0, 0, 0}
     };
-    if((c = getopt_long(argc, argv, "hsi:I:", long_options, &option_index)) == -1) break;
+    if((c = getopt_long(argc, argv, "e:hI:z", long_options, &option_index)) == -1) break;
     switch(c) { 
       case 0:
         printf("Option %s", long_options[option_index].name);
         if(optarg) printf (" with arg %s", optarg);  printf ("\n");
         break;
-      case 'i': if((tm_repc  = atoi(optarg))<=0) 
-		          tm_repc=tm_Repc=1;         		 break;
-      case 'I': tm_Repc  = atoi(optarg);       		 break;
-      case 's': csum++;       		                 break;
+      case 'I': if((tm_Rep  = atoi(optarg))<=0) tm_rep =tm_Rep =1; break;
+	  case 'z': zero++; break;
+      case 'e': scmd = optarg; break;
 	  case 'h':
       default: 
         usage(argv[0]);
         exit(0); 
-    }
-  }
-  printf("\nTurboHist Copyright (c) 2013-2019 Powturbo %s\n", __DATE__);
+    }  
+  }   
+           
+  printf("\nTurboHist Copyright (c) 2013-2022 Powturbo %s\n", __DATE__);
+  char _scmd[33];
+  sprintf(_scmd, "1-%d", ID_LAST);                         
 
   for(fno = optind; fno < argc; fno++) {
     finame = argv[fno];
-
+  
     FILE *fi = fopen(finame,  "rb"); 
-    if(!fi ) perror(finame), exit(1);  
-    printf("'%s'\n", finame);
-
+    if(!fi) perror(finame), exit(1); 							// printf("'%s'\n", finame);
+   
     fseek(fi, 0, SEEK_END); 
     long long flen = ftell(fi); 
-    fseek(fi, 0, SEEK_SET);
-
+    fseek(fi, 0, SEEK_SET);  
+  
     if(flen > GB) flen = GB;
     n = flen; 
     if(!(in = (unsigned char*)malloc(n))) 
       printf("malloc error\n"), exit(-1);
     n = fread(in, 1, n, fi);
     fclose(fi);
-    if(n <= 0) 
-      exit(0); 
+    if(n <= 0)   
+      exit(0);     
   
-    int r,i, cr = hist_1_8(in, n); 
-    TMDEF;
-    for(i = 0; i < sizeof(cods)/sizeof(cods[0]); i++) {
-      TMBEG(0, tm_repc, tm_Repc);
-      r = cods[i].func(in, n); 
-      TMEND(n);
-
-      double tc = (double)tm_tm/(double)tm_rm;
-      printf("%8.2f MB/s\t%s", TMBS(n,tc), cods[i].s);
-      if(csum) {
-        printf(" checksum=%d ", r);
-        if(r != cr) { printf("Fatal error in '%s'\n", cods[i].s); exit(-1); }
-      } 
-      printf("\n");
-      fflush(stdout);
-    }  
+    if(zero) memset(in, 0, n);                                                                          
+    int i; hist_1_8(in, n, scnt);  // first run
+	unsigned char *p = (scmd && (scmd[0] != '0' || scmd[1]))?scmd:_scmd;
+    do { 
+      int id = strtoul(p, &p, 10),idx = id, i;
+      if(id >= 0) {    
+        while(isspace(*p)) p++; if(*p == '-') { if((idx = strtoul(p+1, &p, 10)) < id) idx = id; if(idx > ID_LAST) idx = ID_LAST; } //printf("ID=%d,%d ", id, idx);
+        for(i = id; i <= idx; i++) {
+          if(bench(in, n, cnt, i, scnt)) printf("\t%s\n", finame);  
+        }			  
+      }        
+    } while(*p++);
+    printf("\n");
     free(in);
   }
 }
-
